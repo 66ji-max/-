@@ -6,7 +6,7 @@ import { FileText, Shield, TrendingUp, Truck, Globe, Calculator, Scale, AlertCir
 
 // USER CONFIGURATION: Change this URL to switch the background image for all sub-pages
 // Leave empty string '' to fallback to the default gradient
-const PAGE_BACKGROUND_IMAGE = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop";
+const PAGE_BACKGROUND_IMAGE = "https://image2url.com/r2/default/images/1769422110176-66edd487-25a5-49a1-abf5-9946e4477b99.blob";
 
 interface GenericPageProps {
   title: string;
