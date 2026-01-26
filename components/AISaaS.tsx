@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles, ArrowUpRight } from 'lucide-react';
-import { EgretLogo } from './EgretLogo';
+import { FullLogo } from './FullLogo';
 import { Language } from '../types';
 import { translations } from '../translations';
+import AILabModal from './AILabModal';
 
 interface AISaaSProps {
   language: Language;
@@ -10,27 +11,84 @@ interface AISaaSProps {
 
 const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
   const t = translations[language].aiSaas;
+  const [activeRadar, setActiveRadar] = useState<{title: string, instruction: string, greeting: string} | null>(null);
+
+  const handleRadarClick = (type: 'trademark' | 'patent' | 'image' | 'policy') => {
+      let config = { title: '', instruction: '', greeting: '' };
+      switch(type) {
+          case 'trademark':
+              config = {
+                  title: t.cardRadar1Title,
+                  instruction: "You are the Trademark Radar AI. Your job is to analyze potential trademark infringements for cross-border e-commerce sellers. Users will provide brand names or keywords. You should check for phonetic similarities, semantic conflicts, and potential risks in major markets (US, EU, Southeast Asia). Provide risk levels (High/Medium/Low) and reasoning.",
+                  greeting: language === 'zh' ? "我是商标雷达。请输入您想查询的品牌名称或关键词，我将为您分析潜在的侵权风险。" : "I am the Trademark Radar. Please enter a brand name or keyword, and I will analyze potential infringement risks."
+              };
+              break;
+          case 'patent':
+              config = {
+                  title: t.cardRadar2Title,
+                  instruction: "You are the Patent Radar AI. You assist users in identifying potential patent infringements. Users may describe a product's mechanism or design. You should cross-reference common utility and design patents in the e-commerce space. Disclaimer: You are an AI assistant, not a lawyer.",
+                  greeting: language === 'zh' ? "我是专利雷达。请描述您的产品功能或外观特征，我将为您检索相似的专利信息。" : "I am the Patent Radar. Please describe your product features or design, and I will search for similar patents."
+              };
+              break;
+          case 'image':
+              config = {
+                  title: t.cardRadar3Title,
+                  instruction: "You are the Image/Graphic Radar AI. You specialize in analyzing image descriptions for copyright and trademark violations in logos and product packaging. Users will describe an image. You analyze if it mimics known brands.",
+                  greeting: language === 'zh' ? "我是图形商标雷达。请详细描述您想检测的Logo或产品图片特征（例如：一个咬了一口的苹果），我将为您识别潜在的图形侵权风险。" : "I am the Image Radar. Please describe the Logo or product image features you want to check, and I will identify potential graphic infringement risks."
+              };
+              break;
+          case 'policy':
+              config = {
+                  title: t.cardRadar4Title,
+                  instruction: "You are the Policy Radar AI. You are an expert in Amazon, eBay, Shopee, and Lazada seller policies. Users will ask about listing compliance, prohibited items, or account health. Provide strict, up-to-date policy advice.",
+                  greeting: language === 'zh' ? "我是政策雷达。关于亚马逊、Shopee等平台的最新合规政策，您有什么疑问？" : "I am the Policy Radar. Do you have any questions about the latest compliance policies of platforms like Amazon or Shopee?"
+              };
+              break;
+      }
+      setActiveRadar(config);
+  };
+
+  const handleTopCardClick = (type: 'check' | 'eci' | 'logistics' | 'shopping') => {
+      switch(type) {
+          case 'check':
+              // Scroll to radar section
+              document.getElementById('radar-section')?.scrollIntoView({ behavior: 'smooth' });
+              break;
+          case 'eci':
+              setActiveRadar({
+                  title: t.card2Title,
+                  instruction: "You are the ECI Talent Analyst AI. You specialize in HR analytics and predicting employee performance based on multi-dimensional traits. Explain how the 'Striver Index' works and how it helps companies identify top talent.",
+                  greeting: language === 'zh' ? "我是 ECI 人才分析助手。我可以帮助您解读员工奋斗者指数，并通过多维特征识别优秀人才。您想了解什么？" : "I am the ECI Talent Analyst. I can help you interpret the Employee Striver Index and identify top talent through multi-dimensional characteristics."
+              });
+              break;
+          case 'logistics':
+              setActiveRadar({
+                  title: t.card3Title,
+                  instruction: "You are the Smart Logistics Brain. You use machine learning for sales forecasting, inventory placement, and route optimization in cross-border supply chains. You help reduce costs and improve efficiency.",
+                  greeting: language === 'zh' ? "我是智能物流大脑。基于机器学习技术，我可以为您提供销量预测、供应链优化建议。请告诉我您的物流痛点。" : "I am the Smart Logistics Brain. Based on machine learning, I can provide sales forecasting and supply chain optimization advice."
+              });
+              break;
+          case 'shopping':
+              setActiveRadar({
+                  title: t.card4Title,
+                  instruction: "You are a Next-Gen E-commerce Shopping Assistant. You understand natural language, can recommend products based on vague descriptions, and simulate a personalized shopping experience.",
+                  greeting: language === 'zh' ? "我是您的新一代电商购物助理。想买什么？直接告诉我，哪怕只是一个模糊的想法。" : "I am your Next-Gen Shopping Assistant. What are you looking for? Just tell me, even if it's just a vague idea."
+              });
+              break;
+      }
+  };
 
   return (
-    <div className="bg-sfc-blue min-h-screen w-full text-white font-sans animate-[fadeIn_0.5s_ease-out]">
+    <div className="bg-sfc-blue min-h-screen w-full text-white font-sans animate-[fadeIn_0.5s_ease-out] flex flex-col items-center">
+        
         {/* Section 1: AI x Cross-border E-commerce */}
-        <section className="min-h-screen flex flex-col items-center justify-center p-8 md:p-16 relative pt-24 md:pt-32">
-            <h2 className="text-3xl md:text-5xl font-light mb-16 md:mb-24 text-center tracking-wide">{t.section1Title}</h2>
+        <section className="w-full max-w-[1600px] p-8 md:p-16 pt-24 md:pt-32 flex flex-col items-center">
+            <h2 className="text-3xl md:text-5xl font-light mb-16 md:mb-20 text-center tracking-wide">{t.section1Title}</h2>
             
             <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16 items-center">
                 {/* Logo Area */}
-                <div className="flex flex-col items-start md:items-center lg:items-start pl-4 md:pl-0">
-                    <div className="w-auto">
-                        {/* 鹭起南洋 Logo Recreation */}
-                         <div className="flex flex-col leading-none relative group">
-                            <div className="flex items-center gap-4 mb-2">
-                                <EgretLogo size={64} className="text-white opacity-90" />
-                                <span className="text-6xl md:text-8xl font-black tracking-tight text-white drop-shadow-md">鹭起南洋</span>
-                            </div>
-                            <div className="h-2 md:h-3 bg-[#ff6b00] w-full mt-2 rounded-full transform -skew-x-[20deg] translate-x-4"></div>
-                            <span className="text-xl md:text-3xl mt-4 font-bold tracking-[0.5em] text-white text-right w-full">扶摇直上</span>
-                        </div>
-                    </div>
+                <div className="flex flex-col items-center justify-center lg:items-start pl-0">
+                    <FullLogo className="origin-center lg:origin-left transform scale-90 md:scale-100" />
                 </div>
                 
                 {/* Description */}
@@ -42,33 +100,42 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
                 </div>
             </div>
 
-            {/* Cards */}
+            {/* Top Cards - Interactive */}
             <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card 
                     color="text-cyan-300" 
                     title={t.card1Title} 
                     desc={t.card1Desc} 
+                    onClick={() => handleTopCardClick('check')}
+                    showArrow
                 />
                 <Card 
                     color="text-orange-300" 
                     title={t.card2Title} 
                     desc={t.card2Desc} 
+                    onClick={() => handleTopCardClick('eci')}
+                    showArrow
                 />
                 <Card 
                     color="text-indigo-300" 
                     title={t.card3Title} 
                     desc={t.card3Desc} 
+                    onClick={() => handleTopCardClick('logistics')}
+                    showArrow
                 />
                 <Card 
                     color="text-yellow-300" 
                     title={t.card4Title} 
                     desc={t.card4Desc} 
+                    onClick={() => handleTopCardClick('shopping')}
+                    showArrow
                 />
             </div>
         </section>
 
         {/* Section 2: AI x Infringement Radar */}
-        <section className="min-h-screen flex flex-col items-center justify-center p-8 md:p-16 relative border-t border-white/10 pt-24 md:pt-32">
+        {/* Removed min-h-screen to merge content better */}
+        <section id="radar-section" className="w-full max-w-[1600px] p-8 md:p-16 pb-32 border-t border-white/10 flex flex-col items-center">
              <h2 className="text-3xl md:text-5xl font-light mb-16 md:mb-24 text-center tracking-wide">{t.section2Title}</h2>
 
              <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20 items-center">
@@ -83,13 +150,9 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
                 {/* Right Description */}
                 <div>
                     <h3 className="text-2xl md:text-3xl font-normal mb-4">{t.section2Sub}</h3>
-                    <p className="text-base md:text-lg opacity-90 leading-relaxed mb-8 font-light">
+                    <p className="text-base md:text-lg opacity-90 leading-relaxed font-light">
                          {t.section2Desc}
                     </p>
-                    <button className="flex items-center gap-2 border border-white/40 hover:bg-white hover:text-sfc-blue px-6 py-2.5 rounded transition-all duration-300 group">
-                        <span>{t.btnWebsite}</span>
-                        <ArrowUpRight size={18} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </button>
                 </div>
              </div>
 
@@ -98,25 +161,45 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
                  <Card 
                     color="text-indigo-400" 
                     title={t.cardRadar1Title} 
-                    desc={t.cardRadar1Desc} 
+                    desc={t.cardRadar1Desc}
+                    onClick={() => handleRadarClick('trademark')}
+                    showArrow
                 />
                  <Card 
                     color="text-rose-400" 
                     title={t.cardRadar2Title} 
                     desc={t.cardRadar2Desc} 
+                    onClick={() => handleRadarClick('patent')}
+                    showArrow
                 />
                  <Card 
                     color="text-emerald-400" 
                     title={t.cardRadar3Title} 
-                    desc={t.cardRadar3Desc} 
+                    desc={t.cardRadar3Desc}
+                    onClick={() => handleRadarClick('image')}
+                    showArrow
                 />
                  <Card 
                     color="text-amber-400" 
                     title={t.cardRadar4Title} 
                     desc={t.cardRadar4Desc} 
+                    onClick={() => handleRadarClick('policy')}
+                    showArrow
                 />
              </div>
         </section>
+
+        {activeRadar && (
+            <AILabModal 
+                isOpen={!!activeRadar} 
+                onClose={() => setActiveRadar(null)} 
+                language={language}
+                topic={activeRadar.title}
+                systemInstruction={activeRadar.instruction}
+                initialGreeting={activeRadar.greeting}
+            />
+        )}
+
         <style>{`
           @keyframes fadeIn {
             from { opacity: 0; }
@@ -127,13 +210,21 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
   );
 };
 
-const Card = ({color, title, desc}: {color: string, title: string, desc: string}) => (
-    <div className="bg-white text-gray-800 p-8 rounded-xl shadow-lg hover:-translate-y-2 transition-transform duration-300 min-h-[200px] flex flex-col justify-start items-start group cursor-default">
+const Card = ({color, title, desc, onClick, showArrow}: {color: string, title: string, desc: string, onClick?: () => void, showArrow?: boolean}) => (
+    <div 
+        onClick={onClick}
+        className={`bg-white text-gray-800 p-8 rounded-xl shadow-lg hover:-translate-y-2 transition-transform duration-300 min-h-[200px] flex flex-col justify-start items-start group ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+    >
         <div className={`mb-6 ${color} transform group-hover:scale-110 transition-transform duration-300`}>
             <Sparkles size={28} fill="currentColor" className="opacity-80" />
         </div>
         <h4 className="font-bold text-lg mb-3 text-slate-900">{title}</h4>
         <p className="text-sm text-gray-500 leading-relaxed font-light">{desc}</p>
+        {onClick && showArrow && (
+            <div className="mt-auto pt-4 text-sfc-blue text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                ACCESS <ArrowUpRight size={12} />
+            </div>
+        )}
     </div>
 );
 

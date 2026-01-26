@@ -17,6 +17,6 @@ export enum ConnectionStatus {
   ERROR = 'ERROR'
 }
 
-export type Page = 'home' | 'ai-saas';
+export type Page = 'home' | 'ai-saas' | 'ecommerce' | 'news' | 'governance' | 'about' | 'join';
 
 export type Language = 'zh' | 'en';
