@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Cpu, Sparkles } from 'lucide-react';
-import { streamGeminiResponse } from '../services/geminiService';
+import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon } from 'lucide-react';
+import { streamGeminiResponse, FileData } from '../services/geminiService';
 import { ChatMessage, Language } from '../types';
 import { translations } from '../translations';
 
@@ -8,28 +8,41 @@ interface AILabModalProps {
   isOpen: boolean;
   onClose: () => void;
   language: Language;
+  topic?: string;
+  systemInstruction?: string;
+  initialGreeting?: string;
 }
 
-const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) => {
+const AILabModal: React.FC<AILabModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  language, 
+  topic, 
+  systemInstruction, 
+  initialGreeting 
+}) => {
   const t = translations[language].chat;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{file: File, base64: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Reset messages when language changes or modal opens for the first time
+  // Reset messages when modal opens
   useEffect(() => {
     if (isOpen) {
         setMessages([
             {
               id: 'welcome',
               role: 'model',
-              text: t.welcome,
+              text: initialGreeting || t.welcome,
             },
         ]);
+        setAttachedFile(null);
     }
-  }, [isOpen, language]);
+  }, [isOpen, language, initialGreeting, t.welcome]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,19 +52,59 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
     scrollToBottom();
   }, [messages]);
 
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const base64 = await convertFileToBase64(file);
+        setAttachedFile({ file, base64 });
+      } catch (error) {
+        console.error("Error reading file:", error);
+      }
+    }
+    // Reset input so same file can be selected again if needed
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !attachedFile) || isLoading) return;
+
+    // Construct user display message
+    let displayText = input;
+    if (attachedFile) {
+        displayText = `[File: ${attachedFile.file.name}]\n${input}`;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      text: input,
+      text: displayText,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
+    
+    // Prepare data for API
+    const currentPrompt = input;
+    const currentFile = attachedFile ? { mimeType: attachedFile.file.type, data: attachedFile.base64 } : undefined;
+    setAttachedFile(null); // Clear attachment immediately after send
 
     const modelMsgId = (Date.now() + 1).toString();
     const modelMsg: ChatMessage = {
@@ -64,13 +117,15 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
     setMessages((prev) => [...prev, modelMsg]);
 
     try {
-      await streamGeminiResponse(userMsg.text, (chunk) => {
+      const filesPayload: FileData[] | undefined = currentFile ? [currentFile] : undefined;
+      
+      await streamGeminiResponse(currentPrompt || "Describe this file.", (chunk) => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === modelMsgId ? { ...msg, text: msg.text + chunk } : msg
           )
         );
-      });
+      }, systemInstruction, filesPayload);
     } finally {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -96,7 +151,7 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
         <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 p-4 border-b border-zinc-700 flex justify-between items-center">
           <div className="flex items-center gap-2 text-white">
             <Cpu className="text-purple-400" size={24} />
-            <h2 className="font-bold text-lg tracking-wide">AI SAAS</h2>
+            <h2 className="font-bold text-lg tracking-wide">{topic || 'AI SAAS'}</h2>
           </div>
           <button 
             onClick={onClose}
@@ -122,7 +177,7 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
               >
                 {msg.role === 'model' && (
                     <div className="flex items-center gap-2 mb-1 text-xs text-purple-400 font-bold uppercase">
-                        <Sparkles size={10} /> AI SAAS Assistant
+                        <Sparkles size={10} /> {topic || 'Assistant'}
                     </div>
                 )}
                 <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -135,7 +190,35 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
 
         {/* Input Area */}
         <form onSubmit={handleSubmit} className="p-4 bg-zinc-900 border-t border-zinc-800">
+          {attachedFile && (
+            <div className="mb-3 flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg w-fit border border-white/20 animate-[fadeIn_0.2s_ease-out]">
+                <FileIcon size={14} className="text-purple-400" />
+                <span className="text-xs text-gray-200 truncate max-w-[200px]">{attachedFile.file.name}</span>
+                <button 
+                    type="button" 
+                    onClick={() => setAttachedFile(null)} 
+                    className="ml-2 text-gray-400 hover:text-red-400 transition-colors"
+                >
+                    <X size={14}/>
+                </button>
+            </div>
+          )}
           <div className="relative flex items-center gap-2">
+            <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-black/50 border border-zinc-700 text-gray-400 p-3 rounded-full hover:text-white hover:border-zinc-500 transition-all"
+                title={language === 'zh' ? "添加文件" : "Attach file"}
+            >
+                <Paperclip size={20} />
+            </button>
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={handleFileSelect} 
+                accept="image/*,application/pdf"
+            />
             <input
               type="text"
               value={input}
@@ -145,7 +228,7 @@ const AILabModal: React.FC<AILabModalProps> = ({ isOpen, onClose, language }) =>
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || (!input.trim() && !attachedFile)}
               className="bg-white text-black p-3 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (

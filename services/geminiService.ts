@@ -7,9 +7,18 @@ const apiKey = process.env.API_KEY || '';
 
 const ai = new GoogleGenAI({ apiKey });
 
+const DEFAULT_INSTRUCTION = "You are 'xLab AI', a futuristic artificial intelligence assistant for SFC (SanTai Corp). You specialize in Cross-border E-commerce, Logistics, and AI SaaS software. Your tone is professional, futuristic, and insightful. Keep answers concise.";
+
+export interface FileData {
+  mimeType: string;
+  data: string;
+}
+
 export const streamGeminiResponse = async (
   prompt: string, 
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  systemInstruction?: string,
+  files?: FileData[]
 ): Promise<string> => {
   if (!apiKey) {
     const errorMsg = "API Key not configured.";
@@ -18,16 +27,33 @@ export const streamGeminiResponse = async (
   }
 
   try {
+    const parts: any[] = [];
+    
+    // Add files if present
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        parts.push({
+          inlineData: {
+            mimeType: file.mimeType,
+            data: file.data
+          }
+        });
+      });
+    }
+
+    // Add text prompt
+    parts.push({ text: prompt });
+
     const response = await ai.models.generateContentStream({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash-exp', // Switch to 2.0 Flash Exp for better multimodal stability
       contents: [
         {
           role: 'user',
-          parts: [{ text: prompt }]
+          parts: parts
         }
       ],
       config: {
-        systemInstruction: "You are 'xLab AI', a futuristic artificial intelligence assistant for SFC (SanTai Corp). You specialize in Cross-border E-commerce, Logistics, and AI SaaS software. Your tone is professional, futuristic, and insightful. Keep answers concise.",
+        systemInstruction: systemInstruction || DEFAULT_INSTRUCTION,
       }
     });
 
@@ -43,7 +69,7 @@ export const streamGeminiResponse = async (
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    const errorMsg = "xLab System Error: Connection interrupted.";
+    const errorMsg = "xLab System Error: Connection interrupted. Please try again or check your file format.";
     onChunk(errorMsg);
     return errorMsg;
   }
