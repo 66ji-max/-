@@ -768,20 +768,20 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
              </h3>
              <p className="text-lg text-gray-300 leading-relaxed mb-8 text-justify">
                 {language === 'zh' 
-                    ? "鹭起南洋（SFC）成立于深圳，深耕中马贸易十余年。我们致力于通过人工智能与大数据技术，重构跨境贸易的信任机制与效率体系。从合规检测到智能物流，从选品决策到本土化运营，我们为中国企业出海马来西亚提供全链路的数字化解决方案。我们相信，技术不应只是工具，更是促进区域经济融合、增进文化理解的纽带。" 
+                    ? "鹭起南洋（SFC）成立于2025年11月，我们致力于通过人工智能与大数据技术，重构跨境贸易的信任机制与效率体系。从合规检测到智能物流，从选品决策到本土化运营，我们为中国企业出海马来西亚提供全链路的数字化解决方案。我们相信，技术不应只是工具，更是促进区域经济融合、增进文化理解的纽带。"
                     : "Founded in Shenzhen, SFC has been dedicated to China-Malaysia trade for over a decade. We are committed to reconstructing the trust mechanism and efficiency system of cross-border trade through AI and big data. From compliance checks to smart logistics, we provide end-to-end digital solutions. We believe technology acts as a bond promoting regional economic integration."}
              </p>
              <div className="grid grid-cols-3 gap-8 mt-12 border-t border-white/10 pt-8">
                 <div>
-                    <div className="text-4xl font-bold text-sfc-orange mb-2">10+</div>
-                    <div className="text-sm text-gray-400">{language === 'zh' ? "年行业经验" : "Years Experience"}</div>
+                    <div className="text-4xl font-bold text-sfc-orange mb-2">10000+</div>
+                    <div className="text-sm text-gray-400">{language === 'zh' ? "年使用量" : "Years Experience"}</div>
                 </div>
                 <div>
-                    <div className="text-4xl font-bold text-sfc-orange mb-2">5000+</div>
+                    <div className="text-4xl font-bold text-sfc-orange mb-2">500+</div>
                     <div className="text-sm text-gray-400">{language === 'zh' ? "服务企业" : "Clients Served"}</div>
                 </div>
                 <div>
-                    <div className="text-4xl font-bold text-sfc-orange mb-2">RM 2B+</div>
+                    <div className="text-4xl font-bold text-sfc-orange mb-2">RM 20w+</div>
                     <div className="text-sm text-gray-400">{language === 'zh' ? "促成贸易额" : "Trade Volume"}</div>
                 </div>
              </div>
@@ -801,7 +801,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
                     </p>
                     <div className="flex flex-col gap-4">
                         <JobItem 
-                            title={language === 'zh' ? "跨境合规专家 (吉隆坡/深圳)" : "Compliance Expert (KL/SZ)"} 
+                            title={language === 'zh' ? "跨境合规专家 (吉隆坡/厦门)" : "Compliance Expert (KL/XM)"}
                             onClick={() => openApplication(language === 'zh' ? "跨境合规专家" : "Compliance Expert")}
                         />
                         <JobItem 
