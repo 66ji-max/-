@@ -769,7 +769,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
              <p className="text-lg text-gray-300 leading-relaxed mb-8 text-justify">
                 {language === 'zh' 
                     ? "鹭起南洋（SFC）成立于2025年11月，我们致力于通过人工智能与大数据技术，重构跨境贸易的信任机制与效率体系。从合规检测到智能物流，从选品决策到本土化运营，我们为中国企业出海马来西亚提供全链路的数字化解决方案。我们相信，技术不应只是工具，更是促进区域经济融合、增进文化理解的纽带。"
-                    : "Founded in Shenzhen, SFC has been dedicated to China-Malaysia trade for over a decade. We are committed to reconstructing the trust mechanism and efficiency system of cross-border trade through AI and big data. From compliance checks to smart logistics, we provide end-to-end digital solutions. We believe technology acts as a bond promoting regional economic integration."}
+                    : "Founded in November 2025, SFC (SFC) is dedicated to reconstructing the trust mechanisms and efficiency of cross-border trade through AI and big data technologies. From compliance testing to smart logistics, and from product selection to localization, we provide end-to-end digital solutions for Chinese enterprises expanding into Malaysia. We believe technology is more than just a tool; it's a bond that promotes regional economic integration and enhances cultural understanding."}
              </p>
              <div className="grid grid-cols-3 gap-8 mt-12 border-t border-white/10 pt-8">
                 <div>
@@ -844,6 +844,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
                 backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
             }}
           >
             {/* Dark Overlay for readability */}

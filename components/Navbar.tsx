@@ -98,7 +98,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                   className="flex items-center gap-1 text-sm text-gray-300 cursor-pointer group-hover:text-white select-none"
                 >
                     <Globe size={14} />
-                    <span>{language === 'zh' ? '语言 | Language' : 'Language'}</span>
+                    <span>{language === 'zh' ? '语言 | Language' : 'Language | 语言'}</span>
                     <ChevronDown size={14} className="transition-transform group-hover:rotate-180" />
                 </div>
                 
