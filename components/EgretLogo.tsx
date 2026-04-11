@@ -7,7 +7,7 @@ interface EgretLogoProps {
 
 export const EgretLogo: React.FC<EgretLogoProps> = ({ className, size = 60 }) => (
     <img
-        src="/logo.png" /* 注意：请确保名字和你 public 里的完全一致（区分大小写）*/
+        src="/egret-logo.png" /* 注意：请确保名字和你 public 里的完全一致（区分大小写）*/
         alt="Logo"
         className={className}
         style={{
