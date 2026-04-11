@@ -62,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
             className="flex items-center gap-3 cursor-pointer group" 
             onClick={() => onNavigate('home')}
           >
-            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={36} />
+            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={150} />
             <div className="flex flex-col leading-none">
               <span className="text-xl font-bold tracking-widest text-white">鹭起南洋</span>
               <span className="text-[10px] text-sfc-orange font-bold tracking-[0.2em] text-right">扶摇直上</span>

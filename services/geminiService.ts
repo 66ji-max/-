@@ -1,13 +1,14 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-// 1. 使用 Vite 专用的 import.meta.env 读取环境变量
+// 1. 读取环境变量
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+const baseURL = import.meta.env.VITE_GEMINI_BASE_URL || 'https://catiecli.sukaka.top/v1';
 
 const DEFAULT_INSTRUCTION = "You are 'xLab AI', a futuristic artificial intelligence assistant for SFC (SanTai Corp). You specialize in Cross-border E-commerce, Logistics, and AI SaaS software. Your tone is professional, futuristic, and insightful. Keep answers concise.";
 
 export interface FileData {
   mimeType: string;
-  data: string;
+  data: string; // 这里的 data 是 base64 字符串
 }
 
 export const streamGeminiResponse = async (
@@ -17,44 +18,64 @@ export const streamGeminiResponse = async (
     files?: FileData[]
 ): Promise<string> => {
 
-  // 2. 检查 Key 是否存在
+  // 2. 检查 Key
   if (!apiKey) {
-    const errorMsg = "配置错误: 未找到 API Key。请检查 .env 文件中是否有 VITE_GEMINI_API_KEY";
+    const errorMsg = "配置错误: 未找到 API Key。请检查 .env 文件。";
     console.error(errorMsg);
     onChunk(errorMsg);
     return errorMsg;
   }
 
   try {
-    // 3. 初始化 Web 版 SDK
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-      systemInstruction: systemInstruction || DEFAULT_INSTRUCTION
+    // 3. 初始化 OpenAI SDK (用于连接中转站)
+    // dangerouslyAllowBrowser: true 是必须的，因为你在前端 Vite 中直接调用
+    const openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: baseURL,
+      dangerouslyAllowBrowser: true
     });
 
-    const promptParts: any[] = [];
+    // 4. 构建消息列表
+    const messages: any[] = [
+      {
+        role: "system",
+        content: systemInstruction || DEFAULT_INSTRUCTION
+      }
+    ];
 
-    // 处理文件附件
+    // 处理用户消息和图片
+    const userContent: any[] = [{ type: "text", text: prompt }];
+
     if (files && files.length > 0) {
       files.forEach(file => {
-        promptParts.push({
-          inlineData: {
-            mimeType: file.mimeType,
-            data: file.data
+        // OpenAI 格式需要完整的 Data URL (例如: data:image/png;base64,...)
+        const dataUrl = `data:${file.mimeType};base64,${file.data}`;
+        userContent.push({
+          type: "image_url",
+          image_url: {
+            url: dataUrl
           }
         });
       });
     }
 
-    promptParts.push(prompt);
+    messages.push({
+      role: "user",
+      content: userContent
+    });
 
-    // 4. 发起请求
-    const result = await model.generateContentStream(promptParts);
+    // 5. 发起流式请求
+    // 注意：这里的 model 要填 'gemini-pro' 或 'gemini-1.5-pro'，
+    // 具体取决于你的中转站支持什么名字，通常 gemini-pro 是通用的。
+    const stream = await openai.chat.completions.create({
+      model: 'gemini-pro',
+      messages: messages,
+      stream: true,
+    });
 
     let fullText = '';
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
+    for await (const chunk of stream) {
+      const chunkText = chunk.choices[0]?.delta?.content || '';
       if (chunkText) {
         fullText += chunkText;
         onChunk(chunkText);
@@ -63,17 +84,12 @@ export const streamGeminiResponse = async (
     return fullText;
 
   } catch (error: any) {
-    console.error("Gemini API Error Detail:", error);
+    console.error("API Error Detail:", error);
 
     let errorMsg = "系统错误: 连接被中断。";
     if (error.message) {
-      if (error.message.includes('401') || error.message.includes('API key')) {
-        errorMsg = "认证失败: API Key 无效。请检查 .env 文件。";
-      } else if (error.message.includes('fetch failed')) {
-        errorMsg = "网络错误: 无法连接到 Google AI。请确保您的 VPN/代理已开启并覆盖浏览器。";
-      }
+      errorMsg = `请求失败: ${error.message}`;
     }
-
     onChunk(errorMsg);
     return errorMsg;
   }
