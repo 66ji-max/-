@@ -1,4 +1,6 @@
 import React from 'react';
+// 1. 直接 import 图片 (根据你的相对目录结构调整路径，这里假设 assets 与 components 平级)
+import logoImg from '../assets/logo.png';
 
 interface EgretLogoProps {
     className?: string;
@@ -7,16 +9,17 @@ interface EgretLogoProps {
 
 export const EgretLogo: React.FC<EgretLogoProps> = ({ className, size = 60 }) => (
     <img
-        src="/egret-logo.png" /* 注意：请确保名字和你 public 里的完全一致（区分大小写）*/
+        // 2. 将 import 进来的变量直接赋值给 src
+        src={logoImg}
         alt="Logo"
         className={className}
         style={{
-            width: size,         // 强制指定宽度
-            height: size,        // 强制指定高度，防止 Tailwind 默认的 height: auto 导致高度坍塌
-            minWidth: size,      // 最小宽度防御
-            minHeight: size,     // 最小高度防御
-            objectFit: 'contain',// 保证图片完整显示不被拉伸
-            display: 'block'     // 防止图片底部出现默认的幽灵空白
+            width: size,
+            height: size,
+            minWidth: size,
+            minHeight: size,
+            objectFit: 'contain',
+            display: 'block'
         }}
     />
 );
