@@ -5,6 +5,7 @@ import { Language } from '../types';
 import { translations } from '../translations';
 import AILabModal from './AILabModal';
 import { Pricing } from './Pricing';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AISaaSProps {
   language: Language;
@@ -14,8 +15,13 @@ interface AISaaSProps {
 const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   const t = translations[language].aiSaas;
   const [activeRadar, setActiveRadar] = useState<{title: string, instruction: string, greeting: string} | null>(null);
+  const { user } = useAuth();
 
   const handleRadarClick = (type: 'trademark' | 'patent' | 'image' | 'policy') => {
+      if (!user) {
+          onNavigate('register');
+          return;
+      }
       let config = { title: '', instruction: '', greeting: '' };
       switch(type) {
           case 'trademark':
@@ -57,6 +63,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               document.getElementById('radar-section')?.scrollIntoView({ behavior: 'smooth' });
               break;
           case 'eci':
+              if (!user) { onNavigate('register'); return; }
               setActiveRadar({
                   title: t.card2Title,
                   instruction: "You are the ECI Talent Analyst AI. You specialize in HR analytics and predicting employee performance based on multi-dimensional traits. Explain how the 'Striver Index' works and how it helps companies identify top talent.",
@@ -64,6 +71,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'logistics':
+              if (!user) { onNavigate('register'); return; }
               setActiveRadar({
                   title: t.card3Title,
                   instruction: "You are the Smart Logistics Brain. You use machine learning for sales forecasting, inventory placement, and route optimization in cross-border supply chains. You help reduce costs and improve efficiency.",
@@ -71,6 +79,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'shopping':
+              if (!user) { onNavigate('register'); return; }
               setActiveRadar({
                   title: t.card4Title,
                   instruction: "You are a Next-Gen E-commerce Shopping Assistant. You understand natural language, can recommend products based on vague descriptions, and simulate a personalized shopping experience.",

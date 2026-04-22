@@ -35,7 +35,7 @@ function AppContent() {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <Hero language={language} />;
+        return <Hero language={language} onNavigate={setCurrentPage} />;
       case 'ai-saas':
         return <AISaaS language={language} onNavigate={setCurrentPage} />;
       case 'login':

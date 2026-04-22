@@ -37,10 +37,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
   // Reset messages when modal opens
   useEffect(() => {
     if (isOpen) {
-        let greeting = initialGreeting || t.welcome;
         if (!user) {
-            greeting += "\n\n(Please login to use AI features)";
+            onClose();
+            if (onNavigate) onNavigate('register');
+            return;
         }
+        let greeting = initialGreeting || t.welcome;
         setMessages([
             {
               id: 'welcome',
@@ -50,7 +52,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
         ]);
         setAttachedFile(null);
     }
-  }, [isOpen, language, initialGreeting, t.welcome, user]);
+  }, [isOpen, language, initialGreeting, t.welcome, user, onNavigate, onClose]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +65,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!user) {
         onClose();
-        if (onNavigate) onNavigate('login');
+        if (onNavigate) onNavigate('register');
         return;
     }
     if (e.target.files && e.target.files[0]) {
@@ -78,7 +80,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
     e.preventDefault();
     if (!user) {
         onClose();
-        if (onNavigate) onNavigate('login');
+        if (onNavigate) onNavigate('register');
         return;
     }
     if ((!input.trim() && !attachedFile) || isLoading) return;

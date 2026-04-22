@@ -4,14 +4,17 @@ import AILabModal from './AILabModal';
 import ParticleBackground from './ParticleBackground';
 import { Language } from '../types';
 import { translations } from '../translations';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeroProps {
   language: Language;
+  onNavigate?: (page: any) => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ language }) => {
+const Hero: React.FC<HeroProps> = ({ language, onNavigate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const t = translations[language].hero;
+  const { user } = useAuth();
 
   return (
     <div className="relative w-full h-screen overflow-hidden flex items-center justify-center bg-[#0a0a1a]">
@@ -47,7 +50,13 @@ const Hero: React.FC<HeroProps> = ({ language }) => {
         {/* Call to Action Button (Left) */}
         <div className="opacity-0 animate-[fadeIn_1s_ease-out_1.2s_forwards] flex justify-center md:justify-start">
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+                if (!user && onNavigate) {
+                    onNavigate('register');
+                } else {
+                    setIsModalOpen(true);
+                }
+            }}
             className="group flex items-center gap-2 px-8 py-3 border border-white/80 rounded-full text-white text-lg font-light hover:bg-white hover:text-black transition-all duration-300 backdrop-blur-sm"
           >
             {t.aiButton}
@@ -61,7 +70,7 @@ const Hero: React.FC<HeroProps> = ({ language }) => {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 blur-[100px] rounded-full mix-blend-screen pointer-events-none"></div>
 
       {/* Modal */}
-      <AILabModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} language={language} />
+      <AILabModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} language={language} onNavigate={onNavigate} />
       
       <style>{`
         @keyframes fadeIn {
