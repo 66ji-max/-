@@ -29,8 +29,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (action === 'login' && req.method === 'POST') {
-      const { email, password } = req.body;
-      const user = await prisma.user.findUnique({ where: { email }, include: { membership: true } });
+      const { identifier, email, password } = req.body;
+      const ident = (identifier || email || '').trim();
+      if (!ident || !password) return res.status(400).json({ error: 'Identifier and password required' });
+
+      const user = await prisma.user.findFirst({ 
+        where: { 
+          OR: [
+            { email: ident.toLowerCase() },
+            { username: ident }
+          ]
+        }, 
+        include: { membership: true } 
+      });
       if (!user || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid credentials' });
       
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
