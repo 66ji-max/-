@@ -7,7 +7,7 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
   const [error, setError] = useState('');
   const { login } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await fetch('/api/auth/login', {
@@ -16,7 +16,8 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      
       login(data.token, data.user);
       onNavigate('dashboard');
     } catch (err: any) {
@@ -25,38 +26,17 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4">
-      <div className="w-full max-w-md p-8 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-xl">
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">登录 Login</h2>
-        {error && <div className="mb-4 p-3 bg-red-900/50 border border-red-500 text-red-200 rounded">{error}</div>}
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="Email Address"
-            className="w-full px-4 py-3 bg-black/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sfc-blue transition-colors"
-            required
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full px-4 py-3 bg-black/50 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-sfc-blue transition-colors"
-            required
-          />
-          <button type="submit" className="w-full py-3 mt-2 bg-sfc-blue hover:bg-blue-600 text-white font-bold rounded-lg transition-colors">
-            Sign In
-          </button>
-        </form>
-        <p className="mt-6 text-center text-gray-400 text-sm">
-          Don't have an account?{' '}
-          <button onClick={() => onNavigate('register')} className="text-sfc-blue hover:underline">
-            Register
-          </button>
+    <div className="pt-32 pb-20 flex justify-center px-4">
+      <form onSubmit={handleSubmit} className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
+        <h2 className="text-2xl font-bold mb-6 text-white">Log in</h2>
+        {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full mb-4 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
+        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full mb-6 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
+        <button type="submit" className="w-full bg-sfc-blue text-white font-bold py-3 rounded-full hover:bg-blue-600 transition-colors">Login</button>
+        <p className="mt-4 text-center text-sm text-gray-400">
+          No account? <span onClick={() => onNavigate('register')} className="text-sfc-orange cursor-pointer hover:underline">Register</span>
         </p>
-      </div>
+      </form>
     </div>
   );
 };

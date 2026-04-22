@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -23,9 +24,9 @@ model User {
 model Membership {
   id             String    @id @default(uuid())
   userId         String    @unique
-  user           User      @relation(fields: [userId], references: [id])
-  plan           String    @default("free") // free, startup, pro
-  status         String    @default("active") // trial, active, expired, cancelled
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           String    @default("free") // 枚举: free, startup, pro
+  status         String    @default("trial") // 枚举: trial, active, expired, cancelled
   trialRemaining Int       @default(10)
   startAt        DateTime  @default(now())
   expireAt       DateTime?
@@ -36,18 +37,21 @@ model Membership {
 model UploadedFile {
   id           String   @id @default(uuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   originalName String
   mimeType     String
   size         Int
-  binaryData   Bytes
+  
+  blobUrl      String   // Vercel Blob 的访问 URL
+  blobPathname String   // Vercel Blob 的全局唯一 key
+
   createdAt    DateTime @default(now())
 }
 
 model UsageRecord {
   id           String   @id @default(uuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   featureType  String
   fileId       String?
   requestCount Int      @default(1)
