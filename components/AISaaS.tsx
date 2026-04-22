@@ -19,7 +19,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
 
   const handleRadarClick = (type: 'trademark' | 'patent' | 'image' | 'policy') => {
       if (!user) {
-          onNavigate('register');
+          onNavigate('login');
           return;
       }
       let config = { title: '', instruction: '', greeting: '' };
@@ -63,7 +63,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               document.getElementById('radar-section')?.scrollIntoView({ behavior: 'smooth' });
               break;
           case 'eci':
-              if (!user) { onNavigate('register'); return; }
+              if (!user) { onNavigate('login'); return; }
               setActiveRadar({
                   title: t.card2Title,
                   instruction: "You are the ECI Talent Analyst AI. You specialize in HR analytics and predicting employee performance based on multi-dimensional traits. Explain how the 'Striver Index' works and how it helps companies identify top talent.",
@@ -71,7 +71,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'logistics':
-              if (!user) { onNavigate('register'); return; }
+              if (!user) { onNavigate('login'); return; }
               setActiveRadar({
                   title: t.card3Title,
                   instruction: "You are the Smart Logistics Brain. You use machine learning for sales forecasting, inventory placement, and route optimization in cross-border supply chains. You help reduce costs and improve efficiency.",
@@ -79,7 +79,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'shopping':
-              if (!user) { onNavigate('register'); return; }
+              if (!user) { onNavigate('login'); return; }
               setActiveRadar({
                   title: t.card4Title,
                   instruction: "You are a Next-Gen E-commerce Shopping Assistant. You understand natural language, can recommend products based on vague descriptions, and simulate a personalized shopping experience.",

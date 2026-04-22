@@ -9,7 +9,7 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; isPage?: boole
           period: '/一次性',
           features: ['10次免费试用体验', '基础 OCR 识别', '每日响应时间 < 2s'],
           btnText: '免费开始',
-          action: () => onNavigate('register'),
+          action: () => onNavigate('login'),
           popular: false
       },
       {

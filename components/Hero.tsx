@@ -52,7 +52,7 @@ const Hero: React.FC<HeroProps> = ({ language, onNavigate }) => {
           <button 
             onClick={() => {
                 if (!user && onNavigate) {
-                    onNavigate('register');
+                    onNavigate('login');
                 } else {
                     setIsModalOpen(true);
                 }

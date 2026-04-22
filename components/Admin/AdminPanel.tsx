@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../translations';
 import { Mail, Edit, Trash2, Key, Star, ShieldOff } from 'lucide-react';
+import { authFetch } from '../../utils/apiClient';
 
 export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: string }> = ({ onNavigate, language }) => {
   const { user, token } = useAuth();
@@ -25,9 +26,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin?action=get_users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await authFetch('/api/admin?action=get_users');
       const data = await res.json();
       if (res.ok) {
         setUsers(data.users || []);
@@ -47,9 +46,8 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
     if (!window.confirm(t.confirmDelete)) return;
 
     try {
-      const res = await fetch(`/api/admin?action=delete_user&id=${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await authFetch(`/api/admin?action=delete_user&id=${id}`, {
+        method: 'DELETE'
       });
       if (res.ok) {
         setUsers(users.filter(u => u.id !== id));
@@ -70,11 +68,10 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const saveEdit = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin?action=update_user&id=${id}`, {
+      const res = await authFetch(`/api/admin?action=update_user&id=${id}`, {
         method: 'PATCH',
         headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(editForm)
       });
@@ -99,11 +96,10 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const changeMembership = async (id: string, plan: string, status: string) => {
     try {
-      const res = await fetch(`/api/admin?action=update_membership&id=${id}`, {
+      const res = await authFetch(`/api/admin?action=update_membership&id=${id}`, {
         method: 'PATCH',
         headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ plan, status, trialRemaining: plan === 'pro' ? 9999 : 10 })
       });

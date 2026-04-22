@@ -39,7 +39,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
     if (isOpen) {
         if (!user) {
             onClose();
-            if (onNavigate) onNavigate('register');
+            if (onNavigate) onNavigate('login');
             return;
         }
         let greeting = initialGreeting || t.welcome;

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FileUp, Trash2, File as FileIcon } from 'lucide-react';
 import { translations } from '../../translations';
+import { authFetch } from '../../utils/apiClient';
 
 export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: string }> = ({ onNavigate, language = 'zh' }) => {
   const { user, token, logout } = useAuth();
@@ -15,9 +16,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
     
     const fetchFiles = async () => {
       try {
-        const res = await fetch('/api/files?action=list', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await authFetch('/api/files?action=list');
         if (res.ok) {
           const data = await res.json();
           setFiles(data.files || []);
@@ -39,11 +38,10 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
       const base64Buffer = (event.target?.result as string).split(',')[1];
       
       try {
-        const res = await fetch('/api/files?action=upload', {
+        const res = await authFetch('/api/files?action=upload', {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             filename: selectedFile.name,
@@ -68,9 +66,8 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
 
   const handleDeleteFile = async (id: string) => {
     try {
-      await fetch(`/api/files?action=delete&id=${id}`, { 
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
+      await authFetch(`/api/files?action=delete&id=${id}`, { 
+          method: 'DELETE'
       });
       setFiles(files.filter(f => f.id !== id));
     } catch (e) {}

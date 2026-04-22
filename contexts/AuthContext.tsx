@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authFetch } from '../utils/apiClient';
 
 export interface Membership {
   plan: string;
@@ -44,9 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const res = await fetch('/api/auth?action=me', {
-        headers: { 'Authorization': `Bearer ${currentToken}` }
-      });
+      const res = await authFetch('/api/auth?action=me');
       
       if (res.ok) {
         const data = await res.json();
@@ -65,6 +64,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     refreshUser();
+
+    const handle401 = () => {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('auth_401', handle401);
+    return () => window.removeEventListener('auth_401', handle401);
   }, []);
 
   const login = (newToken: string, loggedInUser: User) => {

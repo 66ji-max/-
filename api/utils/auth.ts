@@ -10,7 +10,7 @@ export const authenticate = (req: VercelRequest, res: VercelResponse): string | 
   }
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { userId: string };
     return decoded.userId;
   } catch (e) {
     res.status(401).json({ error: 'Invalid token' });
