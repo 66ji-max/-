@@ -43,7 +43,7 @@ function AppContent() {
       case 'register':
         return <Register onNavigate={setCurrentPage} language={language} />;
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={setCurrentPage} language={language} />;
       case 'ecommerce':
       case 'news':
       case 'governance':

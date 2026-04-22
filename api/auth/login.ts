@@ -12,7 +12,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
     res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, membership: user.membership } });
-  } catch (error) { res.status(500).json({ error: 'System error' }); }
+  } catch (error: any) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: error.message || 'System error' });
+  }
 }

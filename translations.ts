@@ -10,7 +10,39 @@ export const translations = {
       governance: '公司治理',
       about: '关于我们',
       join: '加入我们',
-      lang: '语言 | Language'
+      lang: '语言 | Language',
+      userCenter: '个人中心',
+      logout: '退出登录',
+      loginRegister: '登录 / 注册'
+    },
+    auth: {
+      loginTitle: '登录',
+      registerTitle: '创建账户',
+      email: '邮箱',
+      password: '密码',
+      name: '姓名',
+      loginBtn: '登录',
+      registerBtn: '注册',
+      noAccount: '没有账号？',
+      hasAccount: '已有账号？',
+      loginFailed: '登录失败',
+      registerFailed: '注册失败',
+      emailInUse: '邮箱已被使用',
+      invalidCreds: '邮箱或密码错误',
+      systemError: '系统错误，请稍后再试'
+    },
+    dashboard: {
+      title: '用户仪表盘',
+      welcome: '欢迎，',
+      subscriptionPlan: '订阅计划',
+      accountStatus: '账号状态',
+      freeTrialRemaining: '免费试用剩余：',
+      logout: '退出',
+      upgradeGoAI: '升级 / 前往 AI',
+      myFiles: '我的文件',
+      uploadFile: '上传文件',
+      noFiles: '暂无上传的文件。',
+      uploadFailed: '上传失败'
     },
     hero: {
       stockCode: '深交所股票代码: 301558',
@@ -62,7 +94,39 @@ export const translations = {
       governance: 'Governance',
       about: 'About Us',
       join: 'Join Us',
-      lang: 'Language | 语言'
+      lang: 'Language | 语言',
+      userCenter: 'User Center',
+      logout: 'Logout',
+      loginRegister: 'Login / Register'
+    },
+    auth: {
+      loginTitle: 'Log in',
+      registerTitle: 'Create Account',
+      email: 'Email',
+      password: 'Password',
+      name: 'Name',
+      loginBtn: 'Login',
+      registerBtn: 'Register',
+      noAccount: 'No account?',
+      hasAccount: 'Have an account?',
+      loginFailed: 'Login failed',
+      registerFailed: 'Registration failed',
+      emailInUse: 'Email is already in use',
+      invalidCreds: 'Invalid email or password',
+      systemError: 'System error, please try again'
+    },
+    dashboard: {
+      title: 'User Dashboard',
+      welcome: 'Welcome, ',
+      subscriptionPlan: 'Subscription Plan',
+      accountStatus: 'Account Status',
+      freeTrialRemaining: 'Free Trial Remaining: ',
+      logout: 'Logout',
+      upgradeGoAI: 'Upgrade / Go to AI',
+      myFiles: 'My Files',
+      uploadFile: 'Upload File',
+      noFiles: 'No files uploaded yet.',
+      uploadFailed: 'Upload failed'
     },
     hero: {
       stockCode: 'SZSE Stock Code: 301558',

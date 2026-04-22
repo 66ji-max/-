@@ -147,13 +147,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                                    onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }}
                                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors text-gray-800 flex items-center gap-2"
                                >
-                                   User Center
+                                   {t.userCenter}
                                </button>
                                <button 
                                    onClick={() => { logout(); onNavigate('home'); setMobileMenuOpen(false); }}
                                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors"
                                >
-                                   Logout
+                                   {t.logout}
                                </button>
                            </div>
                        </div>
@@ -163,7 +163,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                        onClick={() => onNavigate('login')}
                        className="bg-sfc-blue text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors"
                    >
-                       Login / Register
+                       {t.loginRegister}
                    </button>
                )}
             </div>
@@ -182,7 +182,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-t border-gray-800 p-6 flex flex-col gap-4 lg:hidden h-screen">
            <div className="flex flex-col gap-2 py-2 border-b border-gray-800">
-               <span className="text-gray-500 text-sm mb-1">Select Language</span>
+               <span className="text-gray-500 text-sm mb-1">{t.lang}</span>
                <button 
                  onClick={() => { setLanguage('zh'); setMobileMenuOpen(false); }}
                  className={`text-left text-lg ${language === 'zh' ? 'text-sfc-orange font-bold' : 'text-gray-300'}`}
