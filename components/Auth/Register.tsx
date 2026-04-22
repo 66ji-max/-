@@ -27,7 +27,12 @@ export const Register: React.FC<{ onNavigate: (page: any) => void; language: str
         throw new Error(text || t.systemError);
       }
       
-      if (!res.ok) throw new Error(data.error || t.registerFailed);
+      if (!res.ok) {
+        if (data.code === 'EMAIL_EXISTS') {
+            throw new Error(t.emailInUse);
+        }
+        throw new Error(data.error || t.registerFailed);
+      }
       
       login(data.token, data.user);
       onNavigate('dashboard');

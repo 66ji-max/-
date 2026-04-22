@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
-    res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, membership: user.membership } });
+    res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership } });
   } catch (error: any) {
     console.error('Login error:', error);
     res.status(500).json({ error: error.message || 'System error' });

@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Login } from './components/Auth/Login';
 import { Register } from './components/Auth/Register';
 import { Dashboard } from './components/Dashboard/Dashboard';
+import { AdminPanel } from './components/Admin/AdminPanel';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -44,6 +45,8 @@ function AppContent() {
         return <Register onNavigate={setCurrentPage} language={language} />;
       case 'dashboard':
         return <Dashboard onNavigate={setCurrentPage} language={language} />;
+      case 'admin':
+        return <AdminPanel onNavigate={setCurrentPage} language={language} />;
       case 'ecommerce':
       case 'news':
       case 'governance':

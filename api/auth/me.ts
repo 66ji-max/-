@@ -12,5 +12,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
   if (!user) return res.status(404).json({ error: 'User not found' });
   
-  res.status(200).json({ user: { id: user.id, email: user.email, name: user.name, membership: user.membership }});
+  res.status(200).json({ user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership }});
 }

@@ -149,6 +149,14 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                                >
                                    {t.userCenter}
                                </button>
+                               {user.role === 'admin' && (
+                                   <button 
+                                       onClick={() => { onNavigate('admin'); setMobileMenuOpen(false); }}
+                                       className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors text-purple-600 flex items-center gap-2 font-semibold"
+                                   >
+                                       {t.adminPanel}
+                                   </button>
+                               )}
                                <button 
                                    onClick={() => { logout(); onNavigate('home'); setMobileMenuOpen(false); }}
                                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors"
