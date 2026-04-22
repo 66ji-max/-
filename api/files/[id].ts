@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { del } from '@vercel/blob';
-import prisma from '../../api/utils/prisma';
-import { authenticate } from '../../api/utils/auth';
+import prisma from '../utils/prisma.js';
+import { authenticate } from '../utils/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'DELETE') return res.status(405).json({ error: 'Method not allowed' });

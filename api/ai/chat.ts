@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
-import prisma from '../../api/utils/prisma';
-import { authenticate } from '../../api/utils/auth';
+import prisma from '../utils/prisma.js';
+import { authenticate } from '../utils/auth.js';
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
 const genAI = new GoogleGenAI({ apiKey });
