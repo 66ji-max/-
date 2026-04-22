@@ -5,8 +5,12 @@ import AISaaS from './components/AISaaS';
 import GenericPage from './components/GenericPage';
 import { Page, Language } from './types';
 import { translations } from './translations';
+import { AuthProvider } from './contexts/AuthContext';
+import { Login } from './components/Auth/Login';
+import { Register } from './components/Auth/Register';
+import { Dashboard } from './components/Dashboard/Dashboard';
 
-function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [language, setLanguage] = useState<Language>('zh');
 
@@ -33,7 +37,13 @@ function App() {
       case 'home':
         return <Hero language={language} />;
       case 'ai-saas':
-        return <AISaaS language={language} />;
+        return <AISaaS language={language} onNavigate={setCurrentPage} />;
+      case 'login':
+        return <Login onNavigate={setCurrentPage} language={language} />;
+      case 'register':
+        return <Register onNavigate={setCurrentPage} language={language} />;
+      case 'dashboard':
+        return <Dashboard onNavigate={setCurrentPage} />;
       case 'ecommerce':
       case 'news':
       case 'governance':
@@ -64,6 +74,14 @@ function App() {
       </main>
     </div>
   );
+}
+
+function App() {
+    return (
+        <AuthProvider>
+            <AppContent />
+        </AuthProvider>
+    );
 }
 
 export default App;

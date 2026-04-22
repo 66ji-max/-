@@ -4,12 +4,14 @@ import { FullLogo } from './FullLogo';
 import { Language } from '../types';
 import { translations } from '../translations';
 import AILabModal from './AILabModal';
+import { Pricing } from './Pricing';
 
 interface AISaaSProps {
   language: Language;
+  onNavigate: (page: any) => void;
 }
 
-const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
+const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   const t = translations[language].aiSaas;
   const [activeRadar, setActiveRadar] = useState<{title: string, instruction: string, greeting: string} | null>(null);
 
@@ -189,6 +191,11 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
              </div>
         </section>
 
+        {/* Section 3: Pricing */}
+        <section className="w-full max-w-[1600px] border-t border-white/10 bg-black/20">
+             <Pricing onNavigate={onNavigate} />
+        </section>
+
         {activeRadar && (
             <AILabModal 
                 isOpen={!!activeRadar} 
@@ -197,6 +204,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language }) => {
                 topic={activeRadar.title}
                 systemInstruction={activeRadar.instruction}
                 initialGreeting={activeRadar.greeting}
+                onNavigate={onNavigate}
             />
         )}
 

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon } from 'lucide-react';
-import { streamGeminiResponse, FileData } from '../services/geminiService';
+import { streamBackendChat } from '../services/geminiService';
 import { ChatMessage, Language } from '../types';
 import { translations } from '../translations';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AILabModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface AILabModalProps {
   topic?: string;
   systemInstruction?: string;
   initialGreeting?: string;
+  onNavigate?: (page: any) => void;
 }
 
 const AILabModal: React.FC<AILabModalProps> = ({ 
@@ -19,30 +21,36 @@ const AILabModal: React.FC<AILabModalProps> = ({
   language, 
   topic, 
   systemInstruction, 
-  initialGreeting 
+  initialGreeting,
+  onNavigate
 }) => {
   const t = translations[language].chat;
+  const { user, refreshUser } = useAuth();
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<{file: File, base64: string} | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Reset messages when modal opens
   useEffect(() => {
     if (isOpen) {
+        let greeting = initialGreeting || t.welcome;
+        if (!user) {
+            greeting += "\n\n(Please login to use AI features)";
+        }
         setMessages([
             {
               id: 'welcome',
               role: 'model',
-              text: initialGreeting || t.welcome,
+              text: greeting,
             },
         ]);
         setAttachedFile(null);
     }
-  }, [isOpen, language, initialGreeting, t.welcome]);
+  }, [isOpen, language, initialGreeting, t.welcome, user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,30 +60,15 @@ const AILabModal: React.FC<AILabModalProps> = ({
     scrollToBottom();
   }, [messages]);
 
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = error => reject(error);
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      try {
-        const base64 = await convertFileToBase64(file);
-        setAttachedFile({ file, base64 });
-      } catch (error) {
-        console.error("Error reading file:", error);
-      }
+    if (!user) {
+        onClose();
+        if (onNavigate) onNavigate('login');
+        return;
     }
-    // Reset input so same file can be selected again if needed
+    if (e.target.files && e.target.files[0]) {
+      setAttachedFile(e.target.files[0]);
+    }
     if (fileInputRef.current) {
         fileInputRef.current.value = '';
     }
@@ -83,12 +76,17 @@ const AILabModal: React.FC<AILabModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+        onClose();
+        if (onNavigate) onNavigate('login');
+        return;
+    }
     if ((!input.trim() && !attachedFile) || isLoading) return;
 
     // Construct user display message
     let displayText = input;
     if (attachedFile) {
-        displayText = `[File: ${attachedFile.file.name}]\n${input}`;
+        displayText = `[File: ${attachedFile.name}]\n${input}`;
     }
 
     const userMsg: ChatMessage = {
@@ -101,9 +99,9 @@ const AILabModal: React.FC<AILabModalProps> = ({
     setInput('');
     setIsLoading(true);
     
-    // Prepare data for API
-    const currentPrompt = input;
-    const currentFile = attachedFile ? { mimeType: attachedFile.file.type, data: attachedFile.base64 } : undefined;
+    // Prepare data
+    const currentPrompt = input || "Describe this file.";
+    const currentFile = attachedFile || undefined;
     setAttachedFile(null); // Clear attachment immediately after send
 
     const modelMsgId = (Date.now() + 1).toString();
@@ -117,15 +115,16 @@ const AILabModal: React.FC<AILabModalProps> = ({
     setMessages((prev) => [...prev, modelMsg]);
 
     try {
-      const filesPayload: FileData[] | undefined = currentFile ? [currentFile] : undefined;
-      
-      await streamGeminiResponse(currentPrompt || "Describe this file.", (chunk) => {
+      await streamBackendChat(currentPrompt, (chunk) => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === modelMsgId ? { ...msg, text: msg.text + chunk } : msg
           )
         );
-      }, systemInstruction, filesPayload);
+      }, systemInstruction, currentFile);
+      
+      // Refresh user after stream to get updated trial counts
+      refreshUser();
     } finally {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -193,7 +192,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
           {attachedFile && (
             <div className="mb-3 flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg w-fit border border-white/20 animate-[fadeIn_0.2s_ease-out]">
                 <FileIcon size={14} className="text-purple-400" />
-                <span className="text-xs text-gray-200 truncate max-w-[200px]">{attachedFile.file.name}</span>
+                <span className="text-xs text-gray-200 truncate max-w-[200px]">{attachedFile.name}</span>
                 <button 
                     type="button" 
                     onClick={() => setAttachedFile(null)} 

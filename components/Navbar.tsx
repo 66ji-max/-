@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, Globe } from 'lucide-react';
+import { Menu, X, ChevronDown, Globe, User as UserIcon } from 'lucide-react';
 import { EgretLogo } from './EgretLogo';
 import { Page, Language } from '../types';
 import { translations } from '../translations';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NavbarProps {
   onNavigate: (page: Page) => void;
@@ -15,6 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = translations[language].nav;
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,7 +64,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
             className="flex items-center gap-3 cursor-pointer group" 
             onClick={() => onNavigate('home')}
           >
-            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={150} />
+            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={36} />
             <div className="flex flex-col leading-none">
               <span className="text-xl font-bold tracking-widest text-white">鹭起南洋</span>
               <span className="text-[10px] text-sfc-orange font-bold tracking-[0.2em] text-right">扶摇直上</span>
@@ -98,7 +100,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                   className="flex items-center gap-1 text-sm text-gray-300 cursor-pointer group-hover:text-white select-none"
                 >
                     <Globe size={14} />
-                    <span>{language === 'zh' ? '语言 | Language' : 'Language | 语言'}</span>
+                    <span>{language === 'zh' ? '语言 | Language' : 'Language'}</span>
                     <ChevronDown size={14} className="transition-transform group-hover:rotate-180" />
                 </div>
                 
@@ -130,6 +132,41 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                     {item.label}
                </button>
             ))}
+
+            {/* Auth section */}
+            <div className="relative group py-2 ml-4">
+               {user ? (
+                   <>
+                       <div className="flex items-center gap-2 cursor-pointer border border-zinc-700 px-3 py-1.5 rounded-full hover:border-sfc-blue transition-colors">
+                           <UserIcon size={14} className="text-sfc-blue" />
+                           <span className="text-sm font-medium text-white truncate max-w-[120px]">{user.name || user.email}</span>
+                       </div>
+                       <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block animate-[fadeIn_0.2s_ease-out]">
+                           <div className="bg-white rounded-lg shadow-xl overflow-hidden py-1">
+                               <button 
+                                   onClick={() => { onNavigate('dashboard'); setMobileMenuOpen(false); }}
+                                   className="w-full text-left px-4 py-3 text-sm hover:bg-gray-100 transition-colors text-gray-800 flex items-center gap-2"
+                               >
+                                   User Center
+                               </button>
+                               <button 
+                                   onClick={() => { logout(); onNavigate('home'); setMobileMenuOpen(false); }}
+                                   className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors"
+                               >
+                                   Logout
+                               </button>
+                           </div>
+                       </div>
+                   </>
+               ) : (
+                   <button 
+                       onClick={() => onNavigate('login')}
+                       className="bg-sfc-blue text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors"
+                   >
+                       Login / Register
+                   </button>
+               )}
+            </div>
         </div>
 
         {/* Mobile Menu Button */}

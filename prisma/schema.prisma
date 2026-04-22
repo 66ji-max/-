@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  membership   Membership?
+  files        UploadedFile[]
+  usages       UsageRecord[]
+}
+
+model Membership {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id])
+  plan           String    @default("free") // free, startup, pro
+  status         String    @default("active") // trial, active, expired, cancelled
+  trialRemaining Int       @default(10)
+  startAt        DateTime  @default(now())
+  expireAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model UploadedFile {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  originalName String
+  mimeType     String
+  size         Int
+  binaryData   Bytes
+  createdAt    DateTime @default(now())
+}
+
+model UsageRecord {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  featureType  String
+  fileId       String?
+  requestCount Int      @default(1)
+  createdAt    DateTime @default(now())
+}
