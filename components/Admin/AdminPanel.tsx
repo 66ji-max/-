@@ -25,7 +25,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await fetch('/api/admin?action=get_users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -47,7 +47,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
     if (!window.confirm(t.confirmDelete)) return;
 
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await fetch(`/api/admin?action=delete_user&id=${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -70,7 +70,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const saveEdit = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await fetch(`/api/admin?action=update_user&id=${id}`, {
         method: 'PATCH',
         headers: { 
             'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
 
   const changeMembership = async (id: string, plan: string, status: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}/membership`, {
+      const res = await fetch(`/api/admin?action=update_membership&id=${id}`, {
         method: 'PATCH',
         headers: { 
             'Content-Type': 'application/json',

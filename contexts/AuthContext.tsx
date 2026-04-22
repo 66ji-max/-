@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await fetch('/api/auth?action=me', {
         headers: { 'Authorization': `Bearer ${currentToken}` }
       });
       
@@ -78,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/api/auth?action=logout', { method: 'POST' });
   };
 
   return (

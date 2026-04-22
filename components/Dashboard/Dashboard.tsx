@@ -15,7 +15,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
     
     const fetchFiles = async () => {
       try {
-        const res = await fetch('/api/files', {
+        const res = await fetch('/api/files?action=list', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -39,7 +39,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
       const base64Buffer = (event.target?.result as string).split(',')[1];
       
       try {
-        const res = await fetch('/api/files/upload', {
+        const res = await fetch('/api/files?action=upload', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
 
   const handleDeleteFile = async (id: string) => {
     try {
-      await fetch(`/api/files/${id}`, { 
+      await fetch(`/api/files?action=delete&id=${id}`, { 
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
       });
