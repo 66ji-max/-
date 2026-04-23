@@ -3,7 +3,11 @@ export const streamBackendChat = async (
   onChunk: (text: string) => void,
   systemInstruction?: string,
   attachedFile?: File,
-  token?: string | null
+  token?: string | null,
+  sessionId?: string,
+  onSessionCreated?: (sessionId: string) => void,
+  title?: string,
+  topic?: string
 ): Promise<string> => {
   try {
     let attachmentFileId = null;
@@ -16,7 +20,7 @@ export const streamBackendChat = async (
             reader.readAsDataURL(attachedFile);
         });
         const base64Buffer = await base64Promise;
-        const upRes = await fetch('/api/files/upload', { 
+        const upRes = await fetch('/api/files?action=upload', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
@@ -36,7 +40,7 @@ export const streamBackendChat = async (
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ prompt, systemInstruction, attachmentFileId })
+        body: JSON.stringify({ prompt, systemInstruction, attachmentFileId, sessionId, title, topic })
     });
 
     if (!res.ok) throw new Error((await res.json()).error || "Failed");
@@ -56,6 +60,9 @@ export const streamBackendChat = async (
             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
                 try {
                     const parsed = JSON.parse(line.slice(6));
+                    if (parsed.sessionId && onSessionCreated) {
+                        onSessionCreated(parsed.sessionId);
+                    }
                     if (parsed.text) {
                         fullText += parsed.text;
                         onChunk(parsed.text);

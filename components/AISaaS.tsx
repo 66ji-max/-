@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowUpRight } from 'lucide-react';
 import { FullLogo } from './FullLogo';
 import { Language } from '../types';
@@ -20,6 +20,19 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   const t = translations[language].aiSaas;
   const [activeRadar, setActiveRadar] = useState<{title: string, instruction: string, greeting: string} | null>(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const scrollTarget = sessionStorage.getItem('aiScrollTarget');
+    if (scrollTarget === 'pricing') {
+      setTimeout(() => {
+        const el = document.getElementById('pricing-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      sessionStorage.removeItem('aiScrollTarget');
+    }
+  }, []);
 
   const handleRadarClick = (type: 'trademark' | 'patent' | 'image' | 'policy') => {
       if (!user) {
@@ -126,7 +139,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
             <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16 items-center">
                 {/* Logo Area */}
                 <div className="flex flex-col items-center justify-center lg:items-start pl-0">
-                    <FullLogo className="origin-center lg:origin-left transform scale-90 md:scale-100" />
+                    <FullLogo className="origin-center lg:origin-left transform scale-90 md:scale-100" language={language} />
                 </div>
                 
                 {/* Description */}
@@ -228,7 +241,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
         </section>
 
         {/* Section 3: Pricing */}
-        <section className="w-full max-w-[1600px] border-t border-white/10 bg-black/20">
+        <section id="pricing-section" className="w-full max-w-[1600px] border-t border-white/10 bg-black/20">
              <Pricing onNavigate={onNavigate} language={language} isPage={true} />
         </section>
 

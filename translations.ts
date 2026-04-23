@@ -1,5 +1,9 @@
 export const translations = {
   zh: {
+    brand: {
+      title: '鹭起南洋',
+      subtitle: '扶摇直上'
+    },
     nav: {
       home: '首页',
       aiSaas: 'AI SaaS软件',
@@ -64,7 +68,10 @@ export const translations = {
       accountStatus: '账号状态',
       freeTrialRemaining: '免费试用剩余：',
       logout: '退出',
-      upgradeGoAI: '升级 / 前往 AI',
+      goAI: '前往 AI',
+      upgradeAI: '升级 AI',
+      planLabels: { free: '免费体验版', startup: '初创版', pro: '专业版', na: '暂无' },
+      statusLabels: { trial: '试用中', active: '已生效', expired: '已过期', cancelled: '已取消', na: '暂无' },
       myFiles: '我的文件',
       uploadFile: '上传文件',
       noFiles: '暂无上传的文件。',
@@ -134,6 +141,10 @@ export const translations = {
     }
   },
   en: {
+    brand: {
+      title: 'LuQi Nanyang',
+      subtitle: 'Soaring Upward'
+    },
     nav: {
       home: 'Home',
       aiSaas: 'AI SaaS',
@@ -198,7 +209,10 @@ export const translations = {
       accountStatus: 'Account Status',
       freeTrialRemaining: 'Free Trial Remaining: ',
       logout: 'Logout',
-      upgradeGoAI: 'Upgrade / Go to AI',
+      goAI: 'Go to AI',
+      upgradeAI: 'Upgrade AI',
+      planLabels: { free: 'Free Trial', startup: 'Startup', pro: 'Pro', na: 'N/A' },
+      statusLabels: { trial: 'Trial', active: 'Active', expired: 'Expired', cancelled: 'Cancelled', na: 'N/A' },
       myFiles: 'My Files',
       uploadFile: 'Upload File',
       noFiles: 'No files uploaded yet.',

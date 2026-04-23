@@ -82,11 +82,11 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
             <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="bg-black/30 p-4 rounded border border-white/5">
                     <p className="text-gray-400 text-sm">{t.subscriptionPlan}</p>
-                    <p className="text-lg font-bold text-white uppercase">{user?.membership?.plan || 'N/A'}</p>
+                    <p className="text-lg font-bold text-white uppercase">{t.planLabels[(user?.membership?.plan as keyof typeof t.planLabels) || 'na']}</p>
                 </div>
                 <div className="bg-black/30 p-4 rounded border border-white/5">
                     <p className="text-gray-400 text-sm">{t.accountStatus}</p>
-                    <p className="text-lg font-bold text-white capitalize">{user?.membership?.status || 'N/A'}</p>
+                    <p className="text-lg font-bold text-white capitalize">{t.statusLabels[(user?.membership?.status as keyof typeof t.statusLabels) || 'na']}</p>
                 </div>
             </div>
             {user?.membership?.plan === 'free' && (
@@ -94,9 +94,10 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
                     <p className="text-yellow-400 text-sm font-bold">{t.freeTrialRemaining}{user?.membership?.trialRemaining}</p>
                 </div>
             )}
-            <div className="mt-6 flex gap-4">
+            <div className="mt-6 flex flex-wrap gap-4">
               <button onClick={() => { logout(); onNavigate('home'); }} className="px-5 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/40 transition-colors">{t.logout}</button>
-              <button onClick={() => onNavigate('ai-saas')} className="px-5 py-2 bg-sfc-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">{t.upgradeGoAI}</button>
+              <button onClick={() => onNavigate('ai-saas')} className="px-5 py-2 bg-sfc-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">{t.goAI}</button>
+              <button onClick={() => { sessionStorage.setItem('aiScrollTarget', 'pricing'); onNavigate('ai-saas'); }} className="px-5 py-2 bg-sfc-orange text-white font-bold rounded-lg hover:bg-orange-600 transition-colors">{t.upgradeAI}</button>
             </div>
         </div>
         

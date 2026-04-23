@@ -14,13 +14,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = authenticate(req, res);
   if (!userId) return;
 
-  const { prompt, systemInstruction, attachmentFileId } = req.body;
+  const { prompt, systemInstruction, attachmentFileId, sessionId, title, topic } = req.body;
 
   try {
     const membership = await prisma.membership.findUnique({ where: { userId } });
     if (!membership || (membership.plan === "free" && membership.trialRemaining <= 0)) {
         res.status(403).json({ error: "Trial limit reached. Please upgrade your plan." });
         return;
+    }
+    
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+        const generatedTitle = title || prompt.substring(0, 30) || 'New Chat';
+        const session = await prisma.aiChatSession.create({
+            data: { userId, title: generatedTitle, topic }
+        });
+        currentSessionId = session.id;
+    }
+    
+    if (prompt) {
+        await prisma.aiChatMessage.create({
+            data: { sessionId: currentSessionId, role: 'user', content: prompt, attachmentFileId }
+        });
     }
 
     const parts: any[] = [];
@@ -42,10 +57,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     parts.push({ text: prompt || "Hello" });
+    
+    const historyMessages = await prisma.aiChatMessage.findMany({
+        where: { sessionId: currentSessionId },
+        orderBy: { createdAt: 'asc' }
+    });
+    
+    const contents: any[] = historyMessages.map(msg => ({
+        role: msg.role,
+        parts: msg.role === 'user' && msg.id === historyMessages[historyMessages.length - 1].id ? parts : [{ text: msg.content }]
+    }));
+    
+    if (contents.length === 0) {
+        contents.push({ role: 'user', parts });
+    }
 
     const responseStream = await genAI.models.generateContentStream({
         model: 'gemini-2.5-flash',
-        contents: [{ role: 'user', parts }],
+        contents,
         config: { systemInstruction: systemInstruction || "Keep it concise." }
     });
 
@@ -59,12 +88,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+    
+    res.write(`data: ${JSON.stringify({ sessionId: currentSessionId })}\n\n`);
 
+    let fullResponse = "";
     for await (const chunk of responseStream) {
         if (chunk.text) {
+           fullResponse += chunk.text;
            res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
         }
     }
+    
+    await prisma.aiChatMessage.create({
+        data: { sessionId: currentSessionId, role: 'model', content: fullResponse }
+    });
+    
+    await prisma.aiChatSession.update({
+        where: { id: currentSessionId },
+        data: { updatedAt: new Date() }
+    });
     
     await prisma.usageRecord.create({
         data: { userId, featureType: "ai_chat", fileId: attachmentFileId }

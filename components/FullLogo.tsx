@@ -1,12 +1,17 @@
 import React from 'react';
 import { EgretLogo } from './EgretLogo';
+import { translations } from '../translations';
 
 interface FullLogoProps {
   className?: string;
   scale?: number;
+  language?: string;
 }
 
-export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1 }) => {
+export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1, language = 'zh' }) => {
+  const t = translations[language as keyof typeof translations]?.brand || translations.zh.brand;
+  const subtitleChars = t.subtitle.split('');
+  
   return (
     <div className={`flex flex-col items-center select-none ${className}`} style={{ transform: `scale(${scale})` }}>
         <div className="flex items-center gap-3">
@@ -19,7 +24,7 @@ export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1 })
             <div className="flex flex-col">
                 {/* Main Title */}
                 <h1 className="text-6xl font-extrabold text-white tracking-wide leading-none" style={{ fontFamily: 'sans-serif' }}>
-                    鹭起南洋
+                    {t.title}
                 </h1>
             </div>
         </div>
@@ -31,10 +36,9 @@ export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1 })
             
             {/* Subtitle */}
             <div className="flex justify-between w-full px-1">
-                <span className="text-lg font-bold text-white tracking-widest">扶</span>
-                <span className="text-lg font-bold text-white tracking-widest">摇</span>
-                <span className="text-lg font-bold text-white tracking-widest">直</span>
-                <span className="text-lg font-bold text-white tracking-widest">上</span>
+                {subtitleChars.map((char, index) => (
+                   <span key={index} className="text-lg font-bold text-white tracking-widest">{char}</span>
+                ))}
             </div>
         </div>
     </div>

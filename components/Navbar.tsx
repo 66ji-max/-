@@ -66,8 +66,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
           >
             <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={100} />
             <div className="flex flex-col leading-none">
-              <span className="text-4xl font-extrabold tracking-widest text-white">鹭起南洋</span>
-              <span className="text-[14px] text-sfc-orange font-bold tracking-[0.2em] text-right mt-1.5">扶摇直上</span>
+              <span className="text-4xl font-extrabold tracking-widest text-white">{translations[(language || 'zh') as keyof typeof translations]?.brand?.title || '鹭起南洋'}</span>
+              <span className="text-[14px] text-sfc-orange font-bold tracking-[0.2em] text-right mt-1.5">{translations[(language || 'zh') as keyof typeof translations]?.brand?.subtitle || '扶摇直上'}</span>
             </div>
           </div>
 

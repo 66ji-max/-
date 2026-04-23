@@ -861,7 +861,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
       <div className="relative z-10 w-full flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
           {/* Branding Header */}
           <div className="mb-20 transform scale-75 md:scale-100 origin-top">
-            <FullLogo />
+            <FullLogo language={language} />
           </div>
 
           {/* Page Title */}
