@@ -837,23 +837,23 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
     <div className="relative min-h-screen w-full pt-32 pb-20 px-6 flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
       {/* Configurable Background Image */}
       {PAGE_BACKGROUND_IMAGE ? (
-          <div 
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-            }}
-          >
-            {/* Dark Overlay for readability */}
-            <div className="absolute inset-0 bg-[#0a0a1a]/90"></div> 
-            {/* Gradient overlay to match theme */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#0a0a1a]"></div>
+          <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+              <div 
+                className="absolute inset-0"
+                style={{
+                    backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+              ></div>
+              {/* Dark Overlay for readability */}
+              <div className="absolute inset-0 bg-[#0a0a1a]/90"></div> 
+              {/* Gradient overlay to match theme */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#0a0a1a]"></div>
           </div>
       ) : (
           /* Default Gradient Fallback */
-          <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#1a4b8c] to-[#0a0a1a]"></div>
+          <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#1a4b8c] to-[#0a0a1a] pointer-events-none"></div>
       )}
 
       {/* Content Layer */}

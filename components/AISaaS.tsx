@@ -12,6 +12,10 @@ interface AISaaSProps {
   onNavigate: (page: any) => void;
 }
 
+// USER CONFIGURATION: Change this URL to switch the background image for all sub-pages
+// Leave empty string '' to fallback to the default gradient
+const PAGE_BACKGROUND_IMAGE = "https://image2url.com/r2/default/images/1769422110176-66edd487-25a5-49a1-abf5-9946e4477b99.blob";
+
 const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   const t = translations[language].aiSaas;
   const [activeRadar, setActiveRadar] = useState<{title: string, instruction: string, greeting: string} | null>(null);
@@ -90,7 +94,29 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   };
 
   return (
-    <div className="bg-sfc-blue min-h-screen w-full text-white font-sans animate-[fadeIn_0.5s_ease-out] flex flex-col items-center">
+    <div className="relative min-h-screen w-full text-white font-sans animate-[fadeIn_0.5s_ease-out] flex flex-col items-center">
+        {/* Consistent Fixed Background Image */}
+        {PAGE_BACKGROUND_IMAGE ? (
+            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                      backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                  }}
+                ></div>
+                {/* Dark Overlay for readability */}
+                <div className="absolute inset-0 bg-[#0a0a1a]/90"></div> 
+                {/* Gradient overlay to match theme */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-[#0a0a1a]"></div>
+            </div>
+        ) : (
+            <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#1a4b8c] to-[#0a0a1a] pointer-events-none"></div>
+        )}
+
+        {/* Content Layer */}
+        <div className="relative z-10 w-full flex flex-col items-center">
         
         {/* Section 1: AI x Cross-border E-commerce */}
         <section className="w-full max-w-[1600px] p-8 md:p-16 pt-24 md:pt-32 flex flex-col items-center">
@@ -204,6 +230,8 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
         <section className="w-full max-w-[1600px] border-t border-white/10 bg-black/20">
              <Pricing onNavigate={onNavigate} />
         </section>
+
+        </div> {/* End Content Layer */}
 
         {activeRadar && (
             <AILabModal 
