@@ -94,7 +94,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   };
 
   return (
-    <div className="relative min-h-screen w-full text-white font-sans animate-[fadeIn_0.5s_ease-out] flex flex-col items-center">
+    <div className="relative min-h-screen w-full text-white font-sans flex flex-col items-center">
         {/* Consistent Fixed Background Image */}
         {PAGE_BACKGROUND_IMAGE ? (
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -104,6 +104,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
                       backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
                   }}
                 ></div>
                 {/* Dark Overlay for readability */}
@@ -116,7 +117,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
         )}
 
         {/* Content Layer */}
-        <div className="relative z-10 w-full flex flex-col items-center">
+        <div className="relative z-10 w-full flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
         
         {/* Section 1: AI x Cross-border E-commerce */}
         <section className="w-full max-w-[1600px] p-8 md:p-16 pt-24 md:pt-32 flex flex-col items-center">
@@ -228,7 +229,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
 
         {/* Section 3: Pricing */}
         <section className="w-full max-w-[1600px] border-t border-white/10 bg-black/20">
-             <Pricing onNavigate={onNavigate} />
+             <Pricing onNavigate={onNavigate} language={language} isPage={true} />
         </section>
 
         </div> {/* End Content Layer */}

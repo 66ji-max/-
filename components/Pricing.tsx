@@ -1,33 +1,47 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import { Language } from '../types';
+import { translations } from '../translations';
+import { useAuth } from '../contexts/AuthContext';
 
-export const Pricing: React.FC<{ onNavigate: (page: any) => void; isPage?: boolean }> = ({ onNavigate, isPage }) => {
+export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Language; isPage?: boolean }> = ({ onNavigate, language, isPage }) => {
+    const t = translations[language].pricing;
+    const { user } = useAuth();
+
+    const handleUpgrade = () => {
+        if (!user) {
+            onNavigate('login');
+        } else {
+            alert('Mock: Redirect to payment page...');
+        }
+    };
+
     const plans = [
       {
-          name: '免费体验',
+          name: t.free.name,
           price: '¥0',
-          period: '/一次性',
-          features: ['10次免费试用体验', '基础 OCR 识别', '每日响应时间 < 2s'],
-          btnText: '免费开始',
+          period: t.free.period,
+          features: t.free.features,
+          btnText: t.free.button,
           action: () => onNavigate('login'),
           popular: false
       },
       {
-        name: '初创版 / Startup',
-        price: '¥39',
-        period: '/月',
-        features: ['适合小微卖家流水测试', '支持基础 OCR 和图像识别', '每日无限制提问'],
-        btnText: '升级初创版',
-        action: () => alert('Mock: Redirect to payment page...'),
+        name: t.startup.name,
+        price: t.startup.price,
+        period: t.startup.period,
+        features: t.startup.features,
+        btnText: t.startup.button,
+        action: handleUpgrade,
         popular: true
       },
       {
-        name: '专业版 / Pro',
-        price: '¥99',
-        period: '/月',
-        features: ['适合高频选品团队', '批量扫描与实时政策推送', '优先极速队列与 1v1 支持'],
-        btnText: '升级专业版',
-        action: () => alert('Mock: Redirect to payment page...'),
+        name: t.pro.name,
+        price: t.pro.price,
+        period: t.pro.period,
+        features: t.pro.features,
+        btnText: t.pro.button,
+        action: handleUpgrade,
         popular: false
       }
     ];
@@ -35,8 +49,8 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; isPage?: boole
     return (
         <div className={`w-full max-w-7xl mx-auto ${isPage ? 'pt-32 pb-20' : 'py-20'} px-6`}>
             <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold tracking-tight text-white mb-4">Pricing & Subscription</h2>
-                <p className="text-lg text-gray-400 max-w-2xl mx-auto">Choose the right plan to boost your efficiency and get access to exclusive xLab AI models.</p>
+                <h2 className="text-4xl font-bold tracking-tight text-white mb-4">{t.title}</h2>
+                <p className="text-lg text-gray-400 max-w-2xl mx-auto">{t.subtitle}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

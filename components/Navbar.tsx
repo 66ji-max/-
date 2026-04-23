@@ -61,13 +61,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
         <div className="flex items-center gap-12">
           {/* Navbar Logo - Compact version for Header */}
           <div 
-            className="flex items-center gap-3 cursor-pointer group" 
+            className="flex items-center gap-4 cursor-pointer group" 
             onClick={() => onNavigate('home')}
           >
-            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={36} />
+            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={100} />
             <div className="flex flex-col leading-none">
-              <span className="text-xl font-bold tracking-widest text-white">鹭起南洋</span>
-              <span className="text-[10px] text-sfc-orange font-bold tracking-[0.2em] text-right">扶摇直上</span>
+              <span className="text-4xl font-extrabold tracking-widest text-white">鹭起南洋</span>
+              <span className="text-[14px] text-sfc-orange font-bold tracking-[0.2em] text-right mt-1.5">扶摇直上</span>
             </div>
           </div>
 
@@ -100,7 +100,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                   className="flex items-center gap-1 text-sm text-gray-300 cursor-pointer group-hover:text-white select-none"
                 >
                     <Globe size={14} />
-                    <span>{language === 'zh' ? '语言 | Language' : 'Language'}</span>
+                    <span>Language | 语言</span>
                     <ChevronDown size={14} className="transition-transform group-hover:rotate-180" />
                 </div>
                 
@@ -190,7 +190,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-t border-gray-800 p-6 flex flex-col gap-4 lg:hidden h-screen">
            <div className="flex flex-col gap-2 py-2 border-b border-gray-800">
-               <span className="text-gray-500 text-sm mb-1">{t.lang}</span>
+               <span className="text-gray-500 text-sm mb-1">Language | 语言</span>
                <button 
                  onClick={() => { setLanguage('zh'); setMobileMenuOpen(false); }}
                  className={`text-left text-lg ${language === 'zh' ? 'text-sfc-orange font-bold' : 'text-gray-300'}`}

@@ -9,16 +9,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (action === 'register' && req.method === 'POST') {
-      const { email, password, name } = req.body;
+      const { email, password, username, name } = req.body;
       if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+      
+      const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+      if (!pwdRegex.test(password)) {
+        return res.status(400).json({ error: 'Password does not meet complexity requirements', code: 'WEAK_PASSWORD' });
+      }
+
       const normalizedEmail = email.trim().toLowerCase();
       const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       if (existing) return res.status(409).json({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
       
+      const finalUsername = username || name || '';
+      
       const passwordHash = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
         data: { 
-          email: normalizedEmail, name, passwordHash, 
+          email: normalizedEmail, 
+          username: finalUsername,
+          name: finalUsername, // Compatible with old requirement or db schema
+          passwordHash, 
           membership: { create: { plan: 'free', trialRemaining: 10 } } 
         },
         include: { membership: true }

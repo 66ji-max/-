@@ -834,7 +834,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
   };
 
   return (
-    <div className="relative min-h-screen w-full pt-32 pb-20 px-6 flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
+    <div className="relative min-h-screen w-full pt-32 pb-20 px-6 flex flex-col items-center">
       {/* Configurable Background Image */}
       {PAGE_BACKGROUND_IMAGE ? (
           <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -844,6 +844,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
                     backgroundImage: `url(${PAGE_BACKGROUND_IMAGE})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
                 }}
               ></div>
               {/* Dark Overlay for readability */}
@@ -856,8 +857,8 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
           <div className="fixed inset-0 z-0 bg-gradient-to-b from-[#1a4b8c] to-[#0a0a1a] pointer-events-none"></div>
       )}
 
-      {/* Content Layer */}
-      <div className="relative z-10 w-full flex flex-col items-center">
+      {/* Content Layer (has animation to keep the fade effect on content but not background) */}
+      <div className="relative z-10 w-full flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
           {/* Branding Header */}
           <div className="mb-20 transform scale-75 md:scale-100 origin-top">
             <FullLogo />

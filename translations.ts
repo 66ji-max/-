@@ -22,7 +22,9 @@ export const translations = {
       email: '邮箱',
       emailOrUsername: '邮箱或用户名',
       password: '密码',
+      confirmPassword: '确认密码',
       name: '姓名',
+      username: '用户名',
       loginBtn: '登录',
       registerBtn: '注册',
       noAccount: '没有账号？',
@@ -31,7 +33,9 @@ export const translations = {
       registerFailed: '注册失败',
       emailInUse: '该邮箱已被注册',
       invalidCreds: '邮箱或密码错误',
-      systemError: '系统错误，请稍后再试'
+      systemError: '系统错误，请稍后再试',
+      passwordMismatch: '两次输入的密码不一致',
+      weakPassword: '密码至少 8 位，且必须包含大写字母、小写字母和数字'
     },
     admin: {
       title: '系统管理后台',
@@ -100,6 +104,30 @@ export const translations = {
       cardRadar4Title: '政策雷达',
       cardRadar4Desc: '实时匹配亚马逊、eBay等平台政策，合规无忧'
     },
+    pricing: {
+      title: '产品定价与订阅',
+      subtitle: '选择最适合您业务规模的套餐',
+      free: {
+        name: '免费体验',
+        period: '永久',
+        features: ['基础侵权词库检索 (每日10次)', '平台政策基础解读', '支持单语言界面'],
+        button: '当前版本'
+      },
+      startup: {
+        name: '初创版 / Startup',
+        period: '/ 月',
+        features: ['包含免费版所有功能', '多模态图形侵权检测 (每日50次)', '实时 API 接口调用 (限流)', '邮件专属客服支持'],
+        button: '升级初创版',
+        price: '¥ 99'
+      },
+      pro: {
+        name: '专业版 / Pro',
+        period: '/ 年',
+        features: ['专属私有化模型微调', '无限制多模态检测', 'ECI分析系统完整接入', '中马双边专家合规咨询 (每月1次)', '7x24小时全天候响应'],
+        button: '升级专业版',
+        price: '¥ 9,999'
+      }
+    },
     chat: {
       welcome: '欢迎来到 AI SaaS 实验室。我是您的智能助手。关于跨境电商、智能物流或 AI SaaS，您有什么想了解的吗？',
       inputPlaceholder: '询问关于 AI 解决方案的问题...'
@@ -128,7 +156,9 @@ export const translations = {
       email: 'Email',
       emailOrUsername: 'Email or Username',
       password: 'Password',
+      confirmPassword: 'Confirm Password',
       name: 'Name',
+      username: 'Username',
       loginBtn: 'Login',
       registerBtn: 'Register',
       noAccount: 'No account?',
@@ -137,7 +167,9 @@ export const translations = {
       registerFailed: 'Registration failed',
       emailInUse: 'Email already exists',
       invalidCreds: 'Invalid email or password',
-      systemError: 'System error, please try again'
+      systemError: 'System error, please try again',
+      passwordMismatch: 'Passwords do not match',
+      weakPassword: 'Password must be at least 8 characters and include uppercase, lowercase, and a number'
     },
     admin: {
       title: 'Admin Control Panel',
@@ -205,6 +237,30 @@ export const translations = {
       cardRadar3Desc: 'Adopts multi-modal (image-text) recall strategy, adept at identifying trademark features from complex backgrounds.',
       cardRadar4Title: 'Policy Radar',
       cardRadar4Desc: 'Real-time matching of Amazon, eBay and other platform policies for worry-free compliance'
+    },
+    pricing: {
+      title: 'Pricing & Subscription',
+      subtitle: 'Choose the best plan for your business scale',
+      free: {
+        name: 'Free Trial',
+        period: 'Forever',
+        features: ['Basic keyword search (10 times/day)', 'Basic policy interpretation', 'Single language interface'],
+        button: 'Current Plan'
+      },
+      startup: {
+        name: 'Startup',
+        period: '/ Month',
+        features: ['All Free features', 'Multi-modal graphic check (50 times/day)', 'Real-time API access (Rate limited)', 'Priority Email Support'],
+        button: 'Upgrade to Startup',
+        price: 'RM 59'
+      },
+      pro: {
+        name: 'Pro',
+        period: '/ Year',
+        features: ['Exclusive Private Model Tuning', 'Unlimited Multi-modal Check', 'Full ECI System Access', 'Bilateral Expert Consultation (1/month)', '24/7 Dedicated Support'],
+        button: 'Upgrade to Pro',
+        price: 'RM 5,999'
+      }
     },
     chat: {
       welcome: 'Welcome to the AI SaaS Lab. I am your intelligent assistant. What would you like to know about Cross-border E-commerce, Smart Logistics, or AI SaaS?',
