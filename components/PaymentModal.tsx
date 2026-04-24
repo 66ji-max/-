@@ -67,14 +67,22 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
              <div className="bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border border-zinc-700">
                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center mb-3">
                      {/* Replace with real TNG QR URL/base64 */}
-                     <span className="text-black/50 text-xs font-bold px-2 text-center">TNG QR<br/>(Coming Soon)</span>
+                     <img
+                        src="/tng-qr.png"
+                        alt="TNG QR"
+                        className="w-28 h-28 object-contain"
+                    />
                  </div>
                  <span className="text-sm text-gray-300 font-medium">{t.tngQr}</span>
              </div>
              <div className="bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border border-zinc-700">
                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center mb-3">
                      {/* Replace with real Alipay QR URL/base64 */}
-                     <span className="text-black/50 text-xs font-bold px-2 text-center">Alipay QR<br/>(Coming Soon)</span>
+                    <img
+                      src="/alipay-qr.png"
+                      alt="Alipay QR"
+                      className="w-28 h-28 object-contain"
+                    />
                  </div>
                  <span className="text-sm text-gray-300 font-medium">{t.alipayQr}</span>
              </div>
