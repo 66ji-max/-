@@ -193,12 +193,12 @@ export const SupportPanel: React.FC<SupportPanelProps> = ({ language, onClose, u
               {activeConv.messages?.map((msg: any) => {
                   const isMe = msg.senderRole === userRole;
                   return (
-                      <div key={msg.id} className={`max-w-[80%] rounded-2xl p-4 ${isMe ? 'bg-sfc-orange text-white self-end rounded-tr-sm' : 'bg-white/10 text-gray-200 self-start rounded-tl-sm'}`}>
+                      <div key={msg.id} className={`max-w-[80%] min-w-0 rounded-2xl p-4 ${isMe ? 'bg-sfc-orange text-white self-end rounded-tr-sm' : 'bg-white/10 text-gray-200 self-start rounded-tl-sm'}`}>
                           <div className="text-xs opacity-50 mb-1 flex justify-between gap-4">
-                              <span>{isMe ? t.userMessage : t.adminReply}</span>
-                              <span>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                              <span className="whitespace-nowrap">{isMe ? t.userMessage : t.adminReply}</span>
+                              <span className="whitespace-nowrap">{new Date(msg.createdAt).toLocaleTimeString()}</span>
                           </div>
-                          <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                          <div className="whitespace-pre-wrap text-sm break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{msg.content}</div>
                       </div>
                   );
               })}

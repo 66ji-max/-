@@ -142,12 +142,12 @@ export const SupportTab: React.FC<{ language: string; userRole: string }> = ({ l
                           {activeConv.messages?.map((msg: any) => {
                               const isAdmin = msg.senderRole === 'admin';
                               return (
-                                <div key={msg.id} className={`max-w-[80%] rounded-xl p-4 ${isAdmin ? 'bg-sfc-orange/20 border border-sfc-orange/30 text-white self-end ml-auto' : 'bg-white/5 border border-white/10 text-gray-200'}`}>
+                                <div key={msg.id} className={`max-w-[80%] min-w-0 rounded-xl p-4 ${isAdmin ? 'bg-sfc-orange/20 border border-sfc-orange/30 text-white self-end ml-auto' : 'bg-white/5 border border-white/10 text-gray-200'}`}>
                                     <div className="text-xs opacity-50 mb-2 flex justify-between gap-8">
-                                        <span className="font-bold">{isAdmin ? 'Admin' : activeConv.user?.name || activeConv.user?.email || 'User'}</span>
-                                        <span>{new Date(msg.createdAt).toLocaleString()}</span>
+                                        <span className="font-bold whitespace-nowrap">{isAdmin ? 'Admin' : activeConv.user?.name || activeConv.user?.email || 'User'}</span>
+                                        <span className="whitespace-nowrap">{new Date(msg.createdAt).toLocaleString()}</span>
                                     </div>
-                                    <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                                    <div className="whitespace-pre-wrap text-sm break-words overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{msg.content}</div>
                                 </div>
                               )
                           })}
