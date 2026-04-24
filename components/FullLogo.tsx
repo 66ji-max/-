@@ -14,30 +14,30 @@ export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1, l
   
   return (
     <div className={`flex flex-col items-center select-none ${className}`} style={{ transform: `scale(${scale})` }}>
-        <div className="flex items-center gap-4 md:gap-5">
+        <div className="flex items-center gap-4">
             {/* Icon */}
             <div className="mb-2">
-                <EgretLogo size={100} className="text-white" />
+                <EgretLogo size={80} className="text-white" />
             </div>
             
             {/* Text Block */}
             <div className="flex flex-col">
                 {/* Main Title */}
-                <h1 className="text-7xl md:text-[80px] font-extrabold text-white tracking-wide leading-none" style={{ fontFamily: 'sans-serif' }}>
+                <h1 className="text-6xl font-extrabold text-white tracking-wide leading-none" style={{ fontFamily: 'sans-serif' }}>
                     {t.title}
                 </h1>
             </div>
         </div>
 
         {/* Decoration Line and Subtitle Container - Aligned with text width roughly */}
-        <div className="w-full pl-24 md:pl-28 pr-1"> {/* Padding to offset icon width visually */}
+        <div className="w-full pl-24 pr-1"> {/* Padding to offset icon width visually */}
              {/* Orange Line */}
-            <div className="w-full h-[6px] md:h-[8px] bg-[#ff6b00] rounded-full my-4"></div>
+            <div className="w-full h-[6px] bg-[#ff6b00] rounded-full my-3"></div>
             
             {/* Subtitle */}
             <div className="flex justify-between w-full px-1">
                 {subtitleChars.map((char, index) => (
-                   <span key={index} className="text-xl md:text-2xl font-bold text-white tracking-widest">{char}</span>
+                   <span key={index} className="text-lg font-bold text-white tracking-widest">{char}</span>
                 ))}
             </div>
         </div>
