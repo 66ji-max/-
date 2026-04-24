@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { FileUp, Trash2, File as FileIcon } from 'lucide-react';
+import { FileUp, Trash2, File as FileIcon, Headset } from 'lucide-react';
 import { translations } from '../../translations';
 import { authFetch } from '../../utils/apiClient';
+import { SupportPanel } from '../SupportPanel';
 
 export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: string }> = ({ onNavigate, language = 'zh' }) => {
   const { user, token, logout } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[language as keyof typeof translations].dashboard;
+  const ts = translations[language as keyof typeof translations].support;
 
   useEffect(() => {
     if (!user) { onNavigate('login'); return; }
@@ -98,6 +101,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
               <button onClick={() => { logout(); onNavigate('home'); }} className="px-5 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/40 transition-colors">{t.logout}</button>
               <button onClick={() => onNavigate('ai-saas')} className="px-5 py-2 bg-sfc-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">{t.goAI}</button>
               <button onClick={() => { sessionStorage.setItem('aiScrollTarget', 'pricing'); onNavigate('ai-saas'); }} className="px-5 py-2 bg-sfc-orange text-white font-bold rounded-lg hover:bg-orange-600 transition-colors">{t.upgradeAI}</button>
+              <button onClick={() => setIsSupportOpen(true)} className="px-5 py-2 bg-zinc-700 text-white font-bold rounded-lg hover:bg-zinc-600 transition-colors flex items-center gap-2"><Headset size={16}/>{ts.contactSupport}</button>
             </div>
         </div>
         
@@ -144,6 +148,13 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
                 </div>
             )}
         </div>
+        {isSupportOpen && (
+            <SupportPanel 
+                language={language} 
+                onClose={() => setIsSupportOpen(false)} 
+                userRole={user?.role || 'user'} 
+            />
+        )}
     </div>
   );
 };

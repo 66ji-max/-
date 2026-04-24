@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../translations';
-import { Mail, Edit, Trash2, Key, Star, ShieldOff } from 'lucide-react';
+import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle } from 'lucide-react';
 import { authFetch } from '../../utils/apiClient';
+import { SupportTab } from './SupportTab';
 
 export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: string }> = ({ onNavigate, language }) => {
   const { user, token } = useAuth();
   const t = translations[language as keyof typeof translations].admin;
+  const tupg = translations[language as keyof typeof translations].upgrade;
+  const tsup = translations[language as keyof typeof translations].support;
   
+  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'support'>('users');
   const [users, setUsers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -21,10 +26,15 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
       onNavigate('dashboard');
       return;
     }
-    fetchUsers();
-  }, [user]);
+    if (activeTab === 'users') {
+        fetchUsers();
+    } else if (activeTab === 'orders') {
+        fetchOrders();
+    }
+  }, [user, activeTab]);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await authFetch('/api/admin?action=get_users');
       const data = await res.json();
@@ -38,6 +48,60 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await authFetch('/api/orders?action=list');
+      const data = await res.json();
+      if (res.ok) {
+        setOrders(data.orders || []);
+      } else {
+        setError(data.error || 'Failed to fetch orders');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveOrder = async (referenceCode: string) => {
+      try {
+          const res = await authFetch('/api/orders?action=approve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ referenceCode })
+          });
+          if (res.ok) {
+              fetchOrders();
+          } else {
+              const data = await res.json();
+              alert(data.error || 'Approval failed');
+          }
+      } catch (err) {
+          alert('Failed to approve');
+      }
+  };
+
+  const handleRejectOrder = async (referenceCode: string) => {
+      if (!window.confirm('Are you sure you want to reject this order?')) return;
+      try {
+          const res = await authFetch('/api/orders?action=reject', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ referenceCode })
+          });
+          if (res.ok) {
+              fetchOrders();
+          } else {
+              const data = await res.json();
+              alert(data.error || 'Rejection failed');
+          }
+      } catch (err) {
+          alert('Failed to reject');
+      }
   };
 
   const handleDelete = async (id: string, currentRole: string) => {
@@ -119,23 +183,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
       (u.username || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div className="pt-32 text-center text-white">Loading...</div>;
-
-  return (
-    <div className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-white">{t.title}</h1>
-        <input 
-            type="text" 
-            placeholder={t.searchPlaceholder} 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange"
-        />
-      </div>
-
-      {error && <div className="p-4 mb-6 bg-red-500/20 border border-red-500 text-red-100 rounded-lg">{error}</div>}
-
+  const renderUsersTab = () => (
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-x-auto">
         <table className="w-full text-left text-white text-sm">
           <thead className="bg-white/10 border-b border-white/10">
@@ -217,6 +265,112 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
           </tbody>
         </table>
       </div>
+  );
+
+  const renderOrdersTab = () => (
+      <div className="bg-white/5 border border-white/10 rounded-xl overflow-x-auto">
+        <table className="w-full text-left text-white text-sm">
+          <thead className="bg-white/10 border-b border-white/10">
+            <tr>
+              <th className="p-4 font-semibold">Ref Code & Date</th>
+              <th className="p-4 font-semibold">User</th>
+              <th className="p-4 font-semibold">Plan & Amount</th>
+              <th className="p-4 font-semibold">Status</th>
+              <th className="p-4 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(o => (
+              <tr key={o.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                <td className="p-4">
+                  <div className="font-mono text-xs">{o.referenceCode}</div>
+                  <div className="text-xs text-gray-500 mt-1">{new Date(o.createdAt).toLocaleString()}</div>
+                </td>
+                <td className="p-4">
+                  <div className="font-medium">{o.user?.username ? `@${o.user.username}` : (o.user?.name || '-')}</div>
+                  <div className="text-gray-400 text-xs">{o.user?.email}</div>
+                </td>
+                <td className="p-4">
+                   <div className="uppercase font-bold text-sfc-orange">{o.plan}</div>
+                   <div className="text-gray-300 text-xs mt-1">{o.currency} {o.amount}</div>
+                </td>
+                <td className="p-4">
+                   <span className={`px-2 py-1 rounded text-xs font-bold ${
+                       o.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                       o.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                       o.status === 'pending_review' ? 'bg-yellow-500/20 text-yellow-400' :
+                       'bg-gray-500/20 text-gray-400'
+                   }`}>
+                       {tupg && tupg[o.status as keyof typeof tupg] ? tupg[o.status as keyof typeof tupg] : o.status.replace('_', ' ').toUpperCase()}
+                   </span>
+                </td>
+                <td className="p-4 text-right">
+                    {(o.status === 'pending_review' || o.status === 'pending_payment') && (
+                        <div className="flex items-center justify-end gap-2">
+                           <button onClick={() => handleApproveOrder(o.referenceCode)} className="bg-green-500/20 hover:bg-green-500 border border-green-500/50 text-white w-8 h-8 flex items-center justify-center rounded transition-colors" title="Approve">
+                               <CheckCircle size={14} />
+                           </button>
+                           <button onClick={() => handleRejectOrder(o.referenceCode)} className="bg-red-500/20 hover:bg-red-500 border border-red-500/50 text-white w-8 h-8 flex items-center justify-center rounded transition-colors" title="Reject">
+                               <XCircle size={14} />
+                           </button>
+                        </div>
+                    )}
+                </td>
+              </tr>
+            ))}
+            {orders.length === 0 && (
+                <tr>
+                    <td colSpan={5} className="p-8 text-center text-gray-400">No orders found.</td>
+                </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+  );
+
+  return (
+    <div className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h1 className="text-3xl font-bold text-white">{t.title}</h1>
+        {activeTab === 'users' && (
+            <input 
+                type="text" 
+                placeholder={t.searchPlaceholder} 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange"
+            />
+        )}
+      </div>
+
+      <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+          <button 
+              onClick={() => setActiveTab('users')}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'users' ? 'bg-sfc-orange text-white' : 'text-gray-400 hover:text-white bg-white/5'}`}
+          >
+              Users
+          </button>
+          <button 
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'orders' ? 'bg-sfc-orange text-white' : 'text-gray-400 hover:text-white bg-white/5'}`}
+          >
+              Orders
+          </button>
+          <button 
+              onClick={() => setActiveTab('support')}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'support' ? 'bg-sfc-orange text-white' : 'text-gray-400 hover:text-white bg-white/5'}`}
+          >
+              {tsup?.supportMessages || 'Support'}
+          </button>
+      </div>
+
+      {error && <div className="p-4 mb-6 bg-red-500/20 border border-red-500 text-red-100 rounded-lg">{error}</div>}
+
+      {loading && activeTab !== 'support' ? (
+        <div className="py-20 text-center text-white">Loading...</div>
+      ) : (
+        activeTab === 'users' ? renderUsersTab() : activeTab === 'orders' ? renderOrdersTab() : <SupportTab language={language} userRole={user?.role || 'user'} />
+      )}
     </div>
   );
 };

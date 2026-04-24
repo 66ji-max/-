@@ -1,23 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
 import { useAuth } from '../contexts/AuthContext';
+import { authFetch } from '../utils/apiClient';
+import { PaymentModal } from './PaymentModal';
 
 export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Language; isPage?: boolean }> = ({ onNavigate, language, isPage }) => {
     const t = translations[language].pricing;
+    const tupg = translations[language].upgrade;
     const { user } = useAuth();
+    
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+    const [currentOrder, setCurrentOrder] = useState<any>(null);
+    const [showPayment, setShowPayment] = useState(false);
 
-    const handleUpgrade = () => {
+    const handleUpgrade = async (plan: 'startup' | 'pro', amount: number) => {
         if (!user) {
             onNavigate('login');
-        } else {
-            alert('Mock: Redirect to payment page...');
+            return;
         }
+        
+        setLoadingPlan(plan);
+        try {
+            const res = await authFetch('/api/orders?action=create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plan,
+                    amount,
+                    currency: language === 'zh' ? 'RMB' : 'RM'
+                })
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                setCurrentOrder(data.order);
+                setShowPayment(true);
+            } else {
+                alert(tupg.orderFailed);
+            }
+        } catch (err) {
+            alert(tupg.orderFailed);
+        } finally {
+            setLoadingPlan(null);
+        }
+    };
+
+    const getPriceNumber = (plan: 'startup' | 'pro') => {
+        if (plan === 'startup') return language === 'zh' ? 39 : 25;
+        if (plan === 'pro') return language === 'zh' ? 99 : 65;
+        return 0;
     };
 
     const plans = [
       {
+          id: 'free',
           name: t.free.name,
           price: t.free.price,
           period: t.free.period,
@@ -27,27 +65,42 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Lang
           popular: false
       },
       {
+        id: 'startup',
         name: t.startup.name,
         price: t.startup.price,
         period: t.startup.period,
         features: t.startup.features,
         btnText: t.startup.button,
-        action: handleUpgrade,
+        action: () => handleUpgrade('startup', getPriceNumber('startup')),
         popular: true
       },
       {
+        id: 'pro',
         name: t.pro.name,
         price: t.pro.price,
         period: t.pro.period,
         features: t.pro.features,
         btnText: t.pro.button,
-        action: handleUpgrade,
+        action: () => handleUpgrade('pro', getPriceNumber('pro')),
         popular: false
       }
     ];
 
     return (
         <div className={`w-full max-w-7xl mx-auto ${isPage ? 'pt-32 pb-20' : 'py-20'} px-6`}>
+            {showPayment && currentOrder && (
+                <PaymentModal 
+                    isOpen={showPayment} 
+                    onClose={() => setShowPayment(false)} 
+                    order={currentOrder} 
+                    language={language}
+                    onPaymentComplete={() => {
+                        setShowPayment(false);
+                        alert(translations[language].chat ? 'Payment submitted successfully.' : 'Payment submitted successfully.'); // Simple alert for now
+                        onNavigate('dashboard');
+                    }}
+                />
+            )}
             <div className="text-center mb-16">
                 <h2 className="text-4xl font-bold tracking-tight text-white mb-4">{t.title}</h2>
                 <p className="text-lg text-gray-400 max-w-2xl mx-auto">{t.subtitle}</p>
@@ -81,9 +134,12 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Lang
                         </ul>
                         <button 
                             onClick={plan.action}
-                            className={`w-full py-4 rounded-xl font-bold transition-all ${plan.popular ? 'bg-sfc-orange hover:bg-orange-600 text-white shadow-lg' : 'bg-white text-black hover:bg-gray-200'}`}
+                            disabled={loadingPlan === plan.id}
+                            className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center ${plan.popular ? 'bg-sfc-orange hover:bg-orange-600 text-white shadow-lg' : 'bg-white text-black hover:bg-gray-200'} disabled:opacity-70`}
                         >
-                            {plan.btnText}
+                            {loadingPlan === plan.id ? (
+                                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : plan.btnText}
                         </button>
                     </div>
                 ))}
