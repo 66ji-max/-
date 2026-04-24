@@ -1,6 +1,4 @@
 import React from 'react';
-// 1. 直接 import 图片 (根据你的相对目录结构调整路径，这里假设 assets 与 components 平级)
-import logoImg from '../assets/logo.png';
 
 interface EgretLogoProps {
     className?: string;
@@ -9,10 +7,10 @@ interface EgretLogoProps {
 
 export const EgretLogo: React.FC<EgretLogoProps> = ({ className, size = 60 }) => (
     <img
-        // 2. 将 import 进来的变量直接赋值给 src
-        src={logoImg}
+        src="/logo.png"
         alt="Logo"
         className={className}
+        onError={(e) => console.error('Logo failed to load:', e.currentTarget.src)}
         style={{
             width: size,
             height: size,

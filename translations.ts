@@ -118,21 +118,22 @@ export const translations = {
         name: '免费体验',
         period: '永久',
         features: ['基础侵权词库检索 (每日10次)', '平台政策基础解读', '支持单语言界面'],
-        button: '当前版本'
+        button: '当前版本',
+        price: '￥0'
       },
       startup: {
         name: '初创版 / Startup',
         period: '/ 月',
         features: ['包含免费版所有功能', '多模态图形侵权检测 (每日50次)', '实时 API 接口调用 (限流)', '邮件专属客服支持'],
         button: '升级初创版',
-        price: '¥ 99'
+        price: '￥39'
       },
       pro: {
         name: '专业版 / Pro',
         period: '/ 年',
         features: ['专属私有化模型微调', '无限制多模态检测', 'ECI分析系统完整接入', '中马双边专家合规咨询 (每月1次)', '7x24小时全天候响应'],
         button: '升级专业版',
-        price: '¥ 9,999'
+        price: '￥99'
       }
     },
     chat: {
@@ -259,21 +260,22 @@ export const translations = {
         name: 'Free Trial',
         period: 'Forever',
         features: ['Basic keyword search (10 times/day)', 'Basic policy interpretation', 'Single language interface'],
-        button: 'Current Plan'
+        button: 'Current Plan',
+        price: 'RM0'
       },
       startup: {
         name: 'Startup',
         period: '/ Month',
         features: ['All Free features', 'Multi-modal graphic check (50 times/day)', 'Real-time API access (Rate limited)', 'Priority Email Support'],
         button: 'Upgrade to Startup',
-        price: 'RM 59'
+        price: 'RM25'
       },
       pro: {
         name: 'Pro',
         period: '/ Year',
         features: ['Exclusive Private Model Tuning', 'Unlimited Multi-modal Check', 'Full ECI System Access', 'Bilateral Expert Consultation (1/month)', '24/7 Dedicated Support'],
         button: 'Upgrade to Pro',
-        price: 'RM 5,999'
+        price: 'RM65'
       }
     },
     chat: {

@@ -19,7 +19,7 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Lang
     const plans = [
       {
           name: t.free.name,
-          price: '¥0',
+          price: t.free.price,
           period: t.free.period,
           features: t.free.features,
           btnText: t.free.button,
