@@ -1,7 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { put } from '@vercel/blob';
 import prisma from './utils/prisma.js';
 import { authenticate } from './utils/auth.js';
 import crypto from 'crypto';
+
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userId = authenticate(req, res);
@@ -18,11 +21,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const referenceCode = 'UPG-' + crypto.randomBytes(4).toString('hex').toUpperCase();
 
+      // Check for discount coupon logic based on plan and original amount
+      let finalAmount = amount;
+      let couponApplied = false;
+      let originalAmount = amount;
+      let discountAmount = null;
+
+      if (user.discountCouponClaimed) {
+          if (currency === 'RMB') {
+              if (plan === 'startup' && amount === 39) {
+                  finalAmount = 30;
+                  discountAmount = 30;
+                  couponApplied = true;
+              } else if (plan === 'pro' && amount === 99) {
+                  finalAmount = 90;
+                  discountAmount = 90;
+                  couponApplied = true;
+              }
+          } else if (currency === 'RM') {
+              if (plan === 'startup' && amount === 25) {
+                  finalAmount = 20;
+                  discountAmount = 20;
+                  couponApplied = true;
+              } else if (plan === 'pro' && amount === 65) {
+                  finalAmount = 60;
+                  discountAmount = 60;
+                  couponApplied = true;
+              }
+          }
+      }
+
       const order = await prisma.upgradeOrder.create({
         data: {
           userId,
           plan,
-          amount,
+          amount: finalAmount,
+          originalAmount,
+          discountAmount,
+          couponApplied,
           currency,
           referenceCode,
           paymentMethod: paymentMethod || null,
@@ -33,9 +69,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ order });
     }
 
-    if (action === 'mark-paid' && req.method === 'POST') {
-      const { referenceCode, paymentMethod } = req.body;
+    if (action === 'claim-abandon-coupon' && req.method === 'POST') {
+      const { referenceCode } = req.body;
       
+      if (referenceCode) {
+         await prisma.upgradeOrder.updateMany({
+           where: { referenceCode, userId, status: 'pending_payment' },
+           data: { status: 'abandoned', abandonedAt: new Date() }
+         });
+      }
+
+      const updatedUser = await prisma.user.update({
+         where: { id: userId },
+         data: { discountCouponClaimed: true, discountCouponClaimedAt: new Date() }
+      });
+
+      return res.status(200).json({ success: true, user: updatedUser });
+    }
+
+    if (action === 'mark-paid' && req.method === 'POST') {
+      const { referenceCode, paymentMethod, payerOrderNo, proofImageBase64, proofImageFilename, proofImageContentType } = req.body;
+      
+      if (!payerOrderNo && !proofImageBase64) {
+          return res.status(400).json({ error: 'Must provide either order number or proof screenshot' });
+      }
+
       const order = await prisma.upgradeOrder.findUnique({
         where: { referenceCode }
       });
@@ -44,11 +102,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(404).json({ error: 'Order not found' });
       }
 
+      let proofUrl = null;
+      let proofPathname = null;
+
+      if (proofImageBase64) {
+          const fileBuffer = Buffer.from(proofImageBase64, 'base64');
+          const blob = await put(`proofs/${order.id}_${Date.now()}_${proofImageFilename}`, fileBuffer, { access: 'public', contentType: proofImageContentType || 'image/jpeg' });
+          proofUrl = blob.url;
+          proofPathname = blob.pathname;
+      }
+
       const updatedOrder = await prisma.upgradeOrder.update({
         where: { id: order.id },
         data: { 
           status: 'pending_review',
-          paymentMethod: paymentMethod || order.paymentMethod
+          paymentMethod: paymentMethod || order.paymentMethod,
+          payerOrderNo: payerOrderNo || null,
+          proofImageUrl: proofUrl,
+          proofImagePathname: proofPathname
         }
       });
 

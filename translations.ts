@@ -118,7 +118,7 @@ export const translations = {
         name: '免费体验',
         period: '永久',
         features: ['基础侵权词库检索 (每日10次)', '平台政策基础解读', '支持单语言界面'],
-        button: '当前版本',
+        button: '前往体验',
         price: '￥0'
       },
       startup: {
@@ -154,7 +154,19 @@ export const translations = {
       alipayQr: '支付宝收款码',
       totalAmount: '支付金额',
       close: '关闭',
-      upgradeTitle: '升级套餐'
+      upgradeTitle: '升级套餐',
+      paymentProof: '付款凭证',
+      enterOrderNo: '请输入支付宝/TNG订单号',
+      uploadScreenshot: '上传付款截图',
+      proofRequired: '至少填写订单号或上传截图',
+      viewScreenshot: '查看付款截图',
+      couponApplied: '已使用折扣券',
+      claimCoupon: '领取折扣券',
+      exclusiveDiscount: '恭喜获得专属折扣',
+      abandonPrompt: '您似乎遇到了支付问题，专属折扣已为您准备就绪',
+      originalPrice: '原价',
+      discountPrice: '折扣价',
+      loginToTry: '登录后体验'
     },
     support: {
       contactSupport: '联系客服',
@@ -304,7 +316,7 @@ export const translations = {
         name: 'Free Trial',
         period: 'Forever',
         features: ['Basic keyword search (10 times/day)', 'Basic policy interpretation', 'Single language interface'],
-        button: 'Current Plan',
+        button: 'Go Experience',
         price: 'RM0'
       },
       startup: {
@@ -340,7 +352,19 @@ export const translations = {
       alipayQr: 'Alipay QR Code',
       totalAmount: 'Total Amount',
       close: 'Close',
-      upgradeTitle: 'Upgrade Plan'
+      upgradeTitle: 'Upgrade Plan',
+      paymentProof: 'Payment Proof',
+      enterOrderNo: 'Please enter Alipay/TNG order number',
+      uploadScreenshot: 'Upload Payment Screenshot',
+      proofRequired: 'Order number or screenshot is required',
+      viewScreenshot: 'View Screenshot',
+      couponApplied: 'Coupon Applied',
+      claimCoupon: 'Claim Coupon',
+      exclusiveDiscount: 'Exclusive Discount Unlocked',
+      abandonPrompt: 'It seems you had an issue paying, here is an exclusive discount for you!',
+      originalPrice: 'Original Price',
+      discountPrice: 'Discount Price',
+      loginToTry: 'Login to Try'
     },
     support: {
       contactSupport: 'Contact Support',

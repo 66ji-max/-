@@ -275,6 +275,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
               <th className="p-4 font-semibold">Ref Code & Date</th>
               <th className="p-4 font-semibold">User</th>
               <th className="p-4 font-semibold">Plan & Amount</th>
+              <th className="p-4 font-semibold">{tupg.paymentProof || 'Payment Proof'}</th>
               <th className="p-4 font-semibold">Status</th>
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
@@ -282,29 +283,49 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
           <tbody>
             {orders.map(o => (
               <tr key={o.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td className="p-4">
+                <td className="p-4 align-top">
                   <div className="font-mono text-xs">{o.referenceCode}</div>
                   <div className="text-xs text-gray-500 mt-1">{new Date(o.createdAt).toLocaleString()}</div>
                 </td>
-                <td className="p-4">
+                <td className="p-4 align-top">
                   <div className="font-medium">{o.user?.username ? `@${o.user.username}` : (o.user?.name || '-')}</div>
                   <div className="text-gray-400 text-xs">{o.user?.email}</div>
                 </td>
-                <td className="p-4">
+                <td className="p-4 align-top">
                    <div className="uppercase font-bold text-sfc-orange">{o.plan}</div>
-                   <div className="text-gray-300 text-xs mt-1">{o.currency} {o.amount}</div>
+                   {o.couponApplied ? (
+                       <div className="text-gray-300 text-xs mt-1">
+                           <span className="line-through text-gray-500 mr-1">{o.currency} {o.originalAmount}</span>
+                           <span className="text-sfc-orange">{o.currency} {o.amount}</span>
+                       </div>
+                   ) : (
+                       <div className="text-gray-300 text-xs mt-1">{o.currency} {o.amount}</div>
+                   )}
                 </td>
-                <td className="p-4">
-                   <span className={`px-2 py-1 rounded text-xs font-bold ${
+                <td className="p-4 align-top">
+                    {o.payerOrderNo || o.proofImageUrl || o.paymentMethod ? (
+                        <div className="space-y-1">
+                            {o.paymentMethod && <div className="text-xs text-gray-300 uppercase font-bold">{o.paymentMethod}</div>}
+                            {o.payerOrderNo && <div className="text-xs font-mono text-gray-400 bg-black/20 p-1 rounded inline-block">{o.payerOrderNo}</div>}
+                            {o.proofImageUrl && (
+                                <a href={o.proofImageUrl} target="_blank" rel="noreferrer" className="block mt-2 h-16 w-16 overflow-hidden rounded border border-white/10 hover:border-sfc-orange transition-colors">
+                                    <img src={o.proofImageUrl} alt="Proof" className="w-full h-full object-cover" />
+                                </a>
+                            )}
+                        </div>
+                    ) : ( o.status === 'pending_payment' ? <span className="text-gray-500 text-xs italic">Waiting for proof...</span> : <span className="text-gray-500">-</span> )}
+                </td>
+                <td className="p-4 align-top">
+                   <span className={`px-2 py-1 rounded w-max block text-xs font-bold ${
                        o.status === 'approved' ? 'bg-green-500/20 text-green-400' :
                        o.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                       o.status === 'pending_review' ? 'bg-yellow-500/20 text-yellow-400' :
+                       o.status === 'pending_review' ? 'bg-yellow-500/20 text-yellow-400 animate-pulse' :
                        'bg-gray-500/20 text-gray-400'
                    }`}>
                        {tupg && tupg[o.status as keyof typeof tupg] ? tupg[o.status as keyof typeof tupg] : o.status.replace('_', ' ').toUpperCase()}
                    </span>
                 </td>
-                <td className="p-4 text-right">
+                <td className="p-4 text-right align-top">
                     {(o.status === 'pending_review' || o.status === 'pending_payment') && (
                         <div className="flex items-center justify-end gap-2">
                            <button onClick={() => handleApproveOrder(o.referenceCode)} className="bg-green-500/20 hover:bg-green-500 border border-green-500/50 text-white w-8 h-8 flex items-center justify-center rounded transition-colors" title="Approve">
@@ -320,7 +341,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
             ))}
             {orders.length === 0 && (
                 <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-400">No orders found.</td>
+                    <td colSpan={6} className="p-8 text-center text-gray-400">No orders found.</td>
                 </tr>
             )}
           </tbody>

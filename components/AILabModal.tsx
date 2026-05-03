@@ -244,12 +244,28 @@ const AILabModal: React.FC<AILabModalProps> = ({
                 <Cpu className="text-purple-400" size={24} />
                 <h2 className="font-bold text-lg tracking-wide select-none">{topic || 'AI SAAS'}</h2>
               </div>
-              <button 
-                onClick={onClose}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X size={24} />
-              </button>
+              <div className="flex items-center gap-4">
+                  {(!user?.membership || user.membership.plan === 'free' || user.membership.status === 'trial') && (
+                      <button 
+                          onClick={() => {
+                              onClose();
+                              if (onNavigate) {
+                                  sessionStorage.setItem('aiScrollTarget', 'pricing');
+                                  onNavigate('ai-saas');
+                              }
+                          }}
+                          className="bg-sfc-orange hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-colors"
+                      >
+                          {language === 'zh' ? '升级 AI' : 'Upgrade AI'}
+                      </button>
+                  )}
+                  <button 
+                    onClick={onClose}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+              </div>
             </div>
 
             {/* Chat Messages */}

@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
-      return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership } });
+      return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership, discountCouponClaimed: user.discountCouponClaimed, discountCouponClaimedAt: user.discountCouponClaimedAt } });
     }
 
     if (action === 'login' && req.method === 'POST') {
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!user || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid credentials' });
       
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
-      return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership } });
+      return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership, discountCouponClaimed: user.discountCouponClaimed, discountCouponClaimedAt: user.discountCouponClaimedAt } });
     }
 
     if (action === 'me' && req.method === 'GET') {
@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const user = await prisma.user.findUnique({ where: { id: userId }, include: { membership: true } });
       if (!user) return res.status(404).json({ error: 'User not found' });
       
-      return res.status(200).json({ user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership }});
+      return res.status(200).json({ user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership, discountCouponClaimed: user.discountCouponClaimed, discountCouponClaimedAt: user.discountCouponClaimedAt }});
     }
 
     if (action === 'logout' && req.method === 'POST') {

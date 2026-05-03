@@ -102,6 +102,9 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
               <button onClick={() => onNavigate('ai-saas')} className="px-5 py-2 bg-sfc-blue text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">{t.goAI}</button>
               <button onClick={() => { sessionStorage.setItem('aiScrollTarget', 'pricing'); onNavigate('ai-saas'); }} className="px-5 py-2 bg-sfc-orange text-white font-bold rounded-lg hover:bg-orange-600 transition-colors">{t.upgradeAI}</button>
               <button onClick={() => setIsSupportOpen(true)} className="px-5 py-2 bg-zinc-700 text-white font-bold rounded-lg hover:bg-zinc-600 transition-colors flex items-center gap-2"><Headset size={16}/>{ts.contactSupport}</button>
+              {user?.role === 'admin' && (
+                  <button onClick={() => onNavigate('admin')} className="px-5 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-lg shadow-purple-900/50 uppercase">{translations[language as keyof typeof translations].nav.adminPanel}</button>
+              )}
             </div>
         </div>
         

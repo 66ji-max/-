@@ -15,6 +15,8 @@ model User {
   passwordHash   String
   name           String?
   role           String           @default("user")
+  discountCouponClaimed   Boolean @default(false)
+  discountCouponClaimedAt DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
@@ -94,6 +96,13 @@ model UpgradeOrder {
   referenceCode String    @unique
   paymentMethod String?
   status        String    @default("pending_payment")
+  payerOrderNo       String?
+  proofImageUrl      String?
+  proofImagePathname String?
+  couponApplied      Boolean   @default(false)
+  originalAmount     Float?
+  discountAmount     Float?
+  abandonedAt        DateTime?
   note          String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
