@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Gift } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
@@ -39,8 +40,8 @@ export const CouponModal: React.FC<CouponModalProps> = ({ isOpen, onClose, langu
       }
   };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
         <div className="bg-gradient-to-br from-zinc-900 to-black border border-sfc-orange/50 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative p-8 flex flex-col items-center">
             <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors" disabled={loading}>
               <X size={20} />
@@ -62,6 +63,7 @@ export const CouponModal: React.FC<CouponModalProps> = ({ isOpen, onClose, langu
                 {loading ? '...' : (t.claimCoupon || 'Claim Coupon')}
             </button>
         </div>
-    </div>
+    </div>,
+    document.body
   );
 };

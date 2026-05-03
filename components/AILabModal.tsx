@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon, Clock, Plus, Trash2, MessageSquare } from 'lucide-react';
 import { streamBackendChat } from '../services/geminiService';
 import { ChatMessage, Language } from '../types';
@@ -198,8 +199,8 @@ const AILabModal: React.FC<AILabModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
@@ -348,7 +349,8 @@ const AILabModal: React.FC<AILabModalProps> = ({
             </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

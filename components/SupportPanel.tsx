@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { translations } from '../translations';
 import { authFetch } from '../utils/apiClient';
 import { X, Send, MessageSquarePlus, RefreshCw } from 'lucide-react';
@@ -227,8 +228,8 @@ export const SupportPanel: React.FC<SupportPanelProps> = ({ language, onClose, u
       </div>
   )};
 
-  return (
-    <div className="fixed bottom-6 right-6 z-50 animate-[fadeIn_0.2s_ease-out]">
+  return ReactDOM.createPortal(
+    <div className="fixed bottom-6 right-6 z-[9999] animate-[fadeIn_0.2s_ease-out]">
         <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl shadow-2xl w-[350px] md:w-[400px] h-[600px] max-h-[80vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-black/40">
                 <h3 className="font-bold text-white flex items-center gap-2">
@@ -248,6 +249,7 @@ export const SupportPanel: React.FC<SupportPanelProps> = ({ language, onClose, u
                 {!activeConv ? renderList() : activeConv === 'new' ? renderNew() : renderChat()}
             </div>
         </div>
-    </div>
+    </div>,
+    document.body
   );
 };

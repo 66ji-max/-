@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
@@ -87,15 +88,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
   };
 
   const getAlipayQrUrl = () => {
-     if (order.couponApplied) {
+     if (order.couponApplied || order.discountAmount) {
          if (order.plan === 'startup' && order.currency === 'RMB') return '/alipay-qr-rmb30.jpg';
          if (order.plan === 'pro' && order.currency === 'RMB') return '/alipay-qr-rmb90.jpg';
+     } else {
+         if (order.plan === 'startup' && order.currency === 'RMB') return '/alipay-qr-rmb39.jpg';
+         if (order.plan === 'pro' && order.currency === 'RMB') return '/alipay-qr-rmb99.jpg';
      }
      return '/alipay-qr.jpg';
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] overflow-y-auto pt-10 pb-10">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] overflow-y-auto pt-10 pb-10">
       <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative my-auto">
         <div className="flex justify-between items-center p-6 border-b border-zinc-800">
           <h2 className="text-xl font-bold text-white">{t.upgradeTitle} - {order.plan === 'startup' ? translations[language].pricing.startup.name : translations[language].pricing.pro.name}</h2>
@@ -138,7 +142,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
                  onClick={() => setProofMethod('alipay')}
               >
                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center mb-3">
-                     {/* NOTE: If you add more discounts you should upload alipay-qr-rmb30.jpg and alipay-qr-rmb90.jpg into public/ */}
+                     {/* NOTE: You MUST upload /alipay-qr-rmb39.jpg, /alipay-qr-rmb99.jpg, /alipay-qr-rmb30.jpg, and /alipay-qr-rmb90.jpg into public/ directory */}
                     <img
                       src={getAlipayQrUrl()}
                       onError={(e) => { (e.target as HTMLImageElement).src = '/alipay-qr.jpg' }}
@@ -225,6 +229,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
