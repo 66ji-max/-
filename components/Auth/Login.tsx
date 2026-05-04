@@ -8,6 +8,7 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const formRef = React.useRef<HTMLFormElement | null>(null);
   const { login } = useAuth();
   const t = translations[language as keyof typeof translations].auth as any;
 
@@ -20,8 +21,24 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
     setRememberMe(isRemembered);
   }, []);
 
+  const maybeStorePasswordCredential = async () => {
+    try {
+      if (
+        formRef.current &&
+        'credentials' in navigator &&
+        'PasswordCredential' in window
+      ) {
+        const credential = new (window as any).PasswordCredential(formRef.current);
+        await navigator.credentials.store(credential);
+      }
+    } catch (err) {
+      console.warn('Password credential store was skipped:', err);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     
     if (!identifier.trim()) {
       setError(t.validation.requiredIdentifier);
@@ -62,7 +79,12 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
       
       login(data.token, data.user, rememberMe);
       setIsLoading(false);
-      onNavigate('dashboard');
+      
+      await maybeStorePasswordCredential();
+      
+      setTimeout(() => {
+        onNavigate('dashboard');
+      }, 100);
     } catch (err: any) {
       setError(err.message);
       setIsLoading(false);
@@ -71,23 +93,28 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
 
   return (
     <div className="pt-32 pb-20 flex justify-center px-4">
-      <form onSubmit={handleSubmit} noValidate className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
+      <form ref={formRef} onSubmit={handleSubmit} noValidate autoComplete="on" className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
         <h2 className="text-2xl font-bold mb-6 text-white">{t.loginTitle}</h2>
         {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
         <input id="login-identifier" name="username" autoComplete="username" type="text" placeholder={t.emailOrUsername} value={identifier} onChange={e => {setIdentifier(e.target.value); setError('');}} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredIdentifier ? 'border-red-400/60' : 'border-white/10'}`} />
         <input id="login-password" name="password" autoComplete="current-password" type="password" placeholder={t.password} value={password} onChange={e => {setPassword(e.target.value); setError('');}} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredPassword ? 'border-red-400/60' : 'border-white/10'}`} />
         
-        <div className="flex items-center mb-6">
-          <input 
-            type="checkbox" 
-            id="remember-me" 
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 rounded border-white/10 bg-black/40 text-sfc-orange focus:ring-sfc-orange cursor-pointer"
-          />
-          <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300 cursor-pointer select-none">
-            {t.rememberMe || 'Remember me'}
-          </label>
+        <div className="flex flex-col mb-6">
+          <div className="flex items-center">
+            <input 
+              type="checkbox" 
+              id="remember-me" 
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-white/10 bg-black/40 text-sfc-orange focus:ring-sfc-orange cursor-pointer"
+            />
+            <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300 cursor-pointer select-none">
+              {t.rememberMe || 'Remember me'}
+            </label>
+          </div>
+          <p className="mt-1 ml-6 text-xs text-gray-500">
+            {t.rememberMeDesc || 'Remembers your account and session. Passwords are saved by your browser.'}
+          </p>
         </div>
 
         <button 

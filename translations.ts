@@ -49,6 +49,7 @@ export const translations = {
         requiredConfirmPassword: '请确认密码'
       },
       rememberMe: '记住我',
+      rememberMeDesc: '记住账号与登录状态，密码由浏览器密码管理器保存。',
       loggingIn: '登录中...'
     },
     admin: {
@@ -257,6 +258,7 @@ export const translations = {
         requiredConfirmPassword: 'Please confirm your password'
       },
       rememberMe: 'Remember me',
+      rememberMeDesc: 'Remembers your account and session. Passwords are saved by your browser.',
       loggingIn: 'Signing in...'
     },
     admin: {
