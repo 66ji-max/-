@@ -17,11 +17,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Password does not meet complexity requirements', code: 'WEAK_PASSWORD' });
       }
 
+      const finalUsername = (username || name || '').trim();
+      if (!finalUsername) {
+        return res.status(400).json({ error: 'Username required', code: 'USERNAME_REQUIRED' });
+      }
+
       const normalizedEmail = email.trim().toLowerCase();
-      const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-      if (existing) return res.status(409).json({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
+      const existingEmail = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (existingEmail) return res.status(409).json({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
       
-      const finalUsername = username || name || '';
+      const existingUsername = await prisma.user.findUnique({ where: { username: finalUsername } });
+      if (existingUsername) return res.status(409).json({ error: 'Username already exists', code: 'USERNAME_EXISTS' });
       
       const passwordHash = await bcrypt.hash(password, 10);
       const user = await prisma.user.create({
@@ -76,6 +82,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Auth action not found or method not allowed' });
   } catch (error: any) {
     console.error('Auth error:', error);
+    if (error?.code === 'P2002') {
+      const target = error.meta?.target || [];
+      if (target.includes('username')) {
+        return res.status(409).json({ error: 'Username already exists', code: 'USERNAME_EXISTS' });
+      }
+      if (target.includes('email')) {
+        return res.status(409).json({ error: 'Email already exists', code: 'EMAIL_EXISTS' });
+      }
+      return res.status(409).json({ error: 'Unique constraint failed', code: 'DUPLICATE_VALUE' });
+    }
     res.status(500).json({ error: error.message || 'System error' });
   }
 }

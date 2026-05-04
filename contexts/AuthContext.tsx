@@ -15,6 +15,8 @@ export interface User {
   username?: string;
   role: string;
   membership?: Membership;
+  discountCouponClaimed?: boolean;
+  discountCouponClaimedAt?: string | null;
 }
 
 interface AuthContextType {

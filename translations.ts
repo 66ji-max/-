@@ -52,7 +52,11 @@ export const translations = {
       },
       rememberMe: '记住我',
       rememberMeDesc: '记住账号与登录状态，密码由浏览器密码管理器保存。',
-      loggingIn: '登录中...'
+      loggingIn: '登录中...',
+      usernameInUse: '该用户名已被注册',
+      registering: '注册中...',
+      duplicateAccountInfo: '该账号信息已被使用，请更换后重试',
+      registerFailedDetailed: '注册失败，请稍后再试'
     },
     admin: {
       title: '系统管理后台',
@@ -263,7 +267,11 @@ export const translations = {
       },
       rememberMe: 'Remember me',
       rememberMeDesc: 'Remembers your account and session. Passwords are saved by your browser.',
-      loggingIn: 'Signing in...'
+      loggingIn: 'Signing in...',
+      usernameInUse: 'Username already exists',
+      registering: 'Creating account...',
+      duplicateAccountInfo: 'This account information is already in use. Please try another one.',
+      registerFailedDetailed: 'Registration failed. Please try again'
     },
     admin: {
       title: 'Admin Control Panel',
