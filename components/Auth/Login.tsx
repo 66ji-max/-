@@ -11,6 +11,18 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!identifier.trim()) {
+      setError(t.validation.requiredIdentifier);
+      document.getElementById('login-identifier')?.focus();
+      return;
+    }
+    if (!password) {
+      setError(t.validation.requiredPassword);
+      document.getElementById('login-password')?.focus();
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth?action=login', {
         method: 'POST',
@@ -37,11 +49,11 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
 
   return (
     <div className="pt-32 pb-20 flex justify-center px-4">
-      <form onSubmit={handleSubmit} className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
+      <form onSubmit={handleSubmit} noValidate className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
         <h2 className="text-2xl font-bold mb-6 text-white">{t.loginTitle}</h2>
         {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
-        <input type="text" placeholder={t.emailOrUsername} value={identifier} onChange={e => setIdentifier(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-4 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
-        <input type="password" placeholder={t.password} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-6 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
+        <input id="login-identifier" type="text" placeholder={t.emailOrUsername} value={identifier} onChange={e => {setIdentifier(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredIdentifier ? 'border-red-400/60' : 'border-white/10'}`} />
+        <input id="login-password" type="password" placeholder={t.password} value={password} onChange={e => {setPassword(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-6 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredPassword ? 'border-red-400/60' : 'border-white/10'}`} />
         <button type="submit" className="w-full bg-sfc-blue text-white font-bold py-3 rounded-full hover:bg-blue-600 transition-colors">{t.loginBtn}</button>
         <p className="mt-4 text-center text-sm text-gray-400">
           {t.noAccount} <span onClick={() => onNavigate('register')} className="text-sfc-orange cursor-pointer hover:underline">{t.registerBtn}</span>

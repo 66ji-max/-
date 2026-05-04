@@ -13,6 +13,28 @@ export const Register: React.FC<{ onNavigate: (page: any) => void; language: str
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!username.trim()) {
+      setError(t.validation.requiredUsername);
+      document.getElementById('register-username')?.focus();
+      return;
+    }
+    if (!email.trim()) {
+      setError(t.validation.requiredEmail);
+      document.getElementById('register-email')?.focus();
+      return;
+    }
+    if (!password) {
+      setError(t.validation.requiredPassword);
+      document.getElementById('register-password')?.focus();
+      return;
+    }
+    if (!confirmPassword) {
+      setError(t.validation.requiredConfirmPassword);
+      document.getElementById('register-confirm-password')?.focus();
+      return;
+    }
+    
     if (password !== confirmPassword) {
       setError(t.passwordMismatch);
       return;
@@ -58,13 +80,13 @@ export const Register: React.FC<{ onNavigate: (page: any) => void; language: str
 
   return (
     <div className="pt-32 pb-20 flex justify-center px-4">
-      <form onSubmit={handleSubmit} className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
+      <form onSubmit={handleSubmit} noValidate className="bg-white/5 p-8 rounded-xl border border-white/10 w-full max-w-md animate-[fadeIn_0.4s_ease-out]">
         <h2 className="text-2xl font-bold mb-6 text-white">{t.registerTitle}</h2>
         {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
-        <input type="text" placeholder={t.username} value={username} onChange={e => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-4 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
-        <input type="email" placeholder={t.email} value={email} onChange={e => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-4 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
-        <input type="password" placeholder={t.password} value={password} onChange={e => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-4 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
-        <input type="password" placeholder={t.confirmPassword} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} required className="w-full mb-6 p-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange" />
+        <input id="register-username" type="text" placeholder={t.username} value={username} onChange={e => {setUsername(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredUsername ? 'border-red-400/60' : 'border-white/10'}`} />
+        <input id="register-email" type="email" placeholder={t.email} value={email} onChange={e => {setEmail(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredEmail ? 'border-red-400/60' : 'border-white/10'}`} />
+        <input id="register-password" type="password" placeholder={t.password} value={password} onChange={e => {setPassword(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredPassword || error === t.weakPassword ? 'border-red-400/60' : 'border-white/10'}`} />
+        <input id="register-confirm-password" type="password" placeholder={t.confirmPassword} value={confirmPassword} onChange={e => {setConfirmPassword(e.target.value); setError('');}} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(e); }} className={`w-full mb-6 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredConfirmPassword || error === t.passwordMismatch ? 'border-red-400/60' : 'border-white/10'}`} />
         <button type="submit" className="w-full bg-sfc-orange text-white font-bold py-3 rounded-full hover:bg-orange-600 transition-colors">{t.registerBtn}</button>
         <p className="mt-4 text-center text-sm text-gray-400">
           {t.hasAccount} <span onClick={() => onNavigate('login')} className="text-sfc-blue cursor-pointer hover:underline">{t.loginBtn}</span>

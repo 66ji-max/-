@@ -39,7 +39,15 @@ export const translations = {
       invalidCreds: '邮箱或密码错误',
       systemError: '系统错误，请稍后再试',
       passwordMismatch: '两次输入的密码不一致',
-      weakPassword: '密码至少 8 位，且必须包含大写字母、小写字母和数字'
+      weakPassword: '密码至少 8 位，且必须包含大写字母、小写字母和数字',
+      validation: {
+        requiredIdentifier: '请输入邮箱或用户名',
+        requiredEmail: '请输入邮箱',
+        requiredPassword: '请输入密码',
+        requiredName: '请输入姓名',
+        requiredUsername: '请输入用户名',
+        requiredConfirmPassword: '请确认密码'
+      }
     },
     admin: {
       title: '系统管理后台',
@@ -237,7 +245,15 @@ export const translations = {
       invalidCreds: 'Invalid email or password',
       systemError: 'System error, please try again',
       passwordMismatch: 'Passwords do not match',
-      weakPassword: 'Password must be at least 8 characters and include uppercase, lowercase, and a number'
+      weakPassword: 'Password must be at least 8 characters and include uppercase, lowercase, and a number',
+      validation: {
+        requiredIdentifier: 'Please enter your email or username',
+        requiredEmail: 'Please enter your email',
+        requiredPassword: 'Please enter your password',
+        requiredName: 'Please enter your name',
+        requiredUsername: 'Please enter your username',
+        requiredConfirmPassword: 'Please confirm your password'
+      }
     },
     admin: {
       title: 'Admin Control Panel',
