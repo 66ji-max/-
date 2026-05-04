@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, ZoomIn } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
 import { authFetch } from '../utils/apiClient';
@@ -23,6 +23,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
   const [proofImageFilename, setProofImageFilename] = useState('');
   const [proofImageContentType, setProofImageContentType] = useState('');
   const [proofMethod, setProofMethod] = useState<'alipay' | 'tng' | null>(null);
+  const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
 
   if (!isOpen || !order) return null;
 
@@ -99,16 +100,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
   };
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] overflow-y-auto pt-10 pb-10">
-      <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl relative my-auto">
-        <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] pt-8">
+      <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative">
+        <div className="flex justify-between items-center p-6 border-b border-zinc-800 shrink-0">
           <h2 className="text-xl font-bold text-white">{t.upgradeTitle} - {order.plan === 'startup' ? translations[language].pricing.startup.name : translations[language].pricing.pro.name}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors" disabled={loading}>
             <X size={24} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-400">{t.orderNumber}</span>
@@ -123,34 +124,60 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div 
-                 className={`bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-colors ${proofMethod === 'tng' ? 'border-sfc-orange ring-1 ring-sfc-orange/50' : 'border-zinc-700 hover:border-gray-500'}`}
+                 className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'tng' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
                  onClick={() => setProofMethod('tng')}
               >
-                  <div className="w-32 h-32 bg-white rounded flex items-center justify-center mb-3">
+                  <div 
+                      className="relative w-32 h-32 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          setProofMethod('tng');
+                          setPreviewImage({ url: '/tng-qr.jpg', title: t.tngQr || 'TNG QR' });
+                      }}
+                  >
                      <img
                         src="/tng-qr.jpg"
                         alt="TNG QR"
-                        className="w-28 h-28 object-contain"
+                        className="w-28 h-28 object-contain transition-transform group-hover:scale-105"
                     />
+                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <ZoomIn className="text-white drop-shadow-md" size={28} />
+                     </div>
                  </div>
                  <span className="text-sm text-gray-300 font-medium">{t.tngQr}</span>
+                 <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                     <ZoomIn size={12} /> {language === 'zh' ? '点击可放大查看' : 'Click to enlarge'}
+                 </span>
              </div>
              <div 
-                 className={`bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-colors ${proofMethod === 'alipay' ? 'border-sfc-orange ring-1 ring-sfc-orange/50' : 'border-zinc-700 hover:border-gray-500'}`}
+                 className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'alipay' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
                  onClick={() => setProofMethod('alipay')}
               >
-                 <div className="w-32 h-32 bg-white rounded flex items-center justify-center mb-3">
+                 <div 
+                     className="relative w-32 h-32 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
+                     onClick={(e) => {
+                          e.stopPropagation();
+                          setProofMethod('alipay');
+                          setPreviewImage({ url: getAlipayQrUrl(), title: t.alipayQr || 'Alipay QR' });
+                     }}
+                  >
                      {/* NOTE: You MUST upload /alipay-qr-rmb39.jpg, /alipay-qr-rmb99.jpg, /alipay-qr-rmb30.jpg, and /alipay-qr-rmb90.jpg into public/ directory */}
                     <img
                       src={getAlipayQrUrl()}
                       onError={(e) => { (e.target as HTMLImageElement).src = '/alipay-qr.jpg' }}
                       alt="Alipay QR"
-                      className="w-28 h-28 object-contain"
+                      className="w-28 h-28 object-contain transition-transform group-hover:scale-105"
                     />
+                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <ZoomIn className="text-white drop-shadow-md" size={28} />
+                     </div>
                  </div>
                  <span className="text-sm text-gray-300 font-medium">{t.alipayQr}</span>
+                 <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                     <ZoomIn size={12} /> {language === 'zh' ? '点击可放大查看' : 'Click to enlarge'}
+                 </span>
              </div>
           </div>
 
@@ -206,29 +233,57 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
               {error}
             </div>
           )}
+        </div>
 
-          <div className="flex gap-4 pt-2">
-            <button 
-              onClick={onClose} 
-              className="flex-1 py-3 px-4 rounded-xl font-bold bg-zinc-800 text-white hover:bg-zinc-700 transition-colors"
-              disabled={loading}
-            >
-              {t.close}
-            </button>
-            <button 
-              onClick={handleMarkPaid} 
-              className="flex-1 py-3 px-4 rounded-xl font-bold bg-sfc-orange text-white hover:bg-orange-600 transition-colors flex items-center justify-center disabled:opacity-50"
-              disabled={loading || (!proofImageBase64 && !payerOrderNo.trim())}
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                t.confirmPay
-              )}
-            </button>
-          </div>
+        <div className="sticky bottom-0 bg-zinc-900 border-t border-zinc-800 p-6 flex gap-4 shrink-0">
+          <button 
+            onClick={onClose} 
+            className="flex-1 py-3 px-4 rounded-xl font-bold bg-zinc-800 border border-zinc-700 text-white hover:bg-zinc-700 transition-colors"
+            disabled={loading}
+          >
+            {t.close}
+          </button>
+          <button 
+            onClick={handleMarkPaid} 
+            className="flex-1 py-3 px-4 rounded-xl font-bold bg-sfc-orange text-white hover:bg-orange-600 transition-colors flex items-center justify-center disabled:opacity-50 shadow-lg"
+            disabled={loading || (!proofImageBase64 && !payerOrderNo.trim())}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              t.confirmPay
+            )}
+          </button>
         </div>
       </div>
+      
+      {previewImage && (
+          <div 
+              className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 p-4 animate-[fadeIn_0.2s_ease-out]"
+              onClick={() => setPreviewImage(null)}
+          >
+              <div className="relative max-w-lg w-full flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+                  <button 
+                      onClick={() => setPreviewImage(null)} 
+                      className="absolute -top-12 right-0 text-white hover:text-sfc-orange transition-colors"
+                  >
+                      <X size={32} />
+                  </button>
+                  <h3 className="text-2xl font-bold text-white mb-2 shadow-black drop-shadow-md">
+                      {previewImage.title}
+                  </h3>
+                  <div className="bg-sfc-orange/20 text-sfc-orange px-4 py-2 rounded-full font-bold text-xl mb-6 border border-sfc-orange/50 shadow-black drop-shadow-md">
+                      {order.currency} {order.amount.toFixed(2)}
+                  </div>
+                  <img 
+                      src={previewImage.url} 
+                      onError={(e) => { (e.target as HTMLImageElement).src = previewImage.url.includes('alipay') ? '/alipay-qr.jpg' : '/tng-qr.jpg' }}
+                      alt="QR Code Preview" 
+                      className="w-full max-w-sm bg-white rounded-xl shadow-2xl p-2"
+                  />
+              </div>
+          </div>
+      )}
     </div>,
     document.body
   );
