@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (action === 'login' && req.method === 'POST') {
       const { identifier, email, password } = req.body;
       const ident = (identifier || email || '').trim();
-      if (!ident || !password) return res.status(400).json({ error: 'Identifier and password required' });
+      if (!ident || !password) return res.status(400).json({ error: 'Identifier and password required', code: 'MISSING_CREDENTIALS' });
 
       const user = await prisma.user.findFirst({ 
         where: { 
@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }, 
         include: { membership: true } 
       });
-      if (!user || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid credentials' });
+      if (!user || !(await bcrypt.compare(password, user.passwordHash))) return res.status(401).json({ error: 'Invalid credentials', code: 'INVALID_CREDENTIALS' });
       
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
       return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership, discountCouponClaimed: user.discountCouponClaimed, discountCouponClaimedAt: user.discountCouponClaimedAt } });

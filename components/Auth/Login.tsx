@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../translations';
 
@@ -8,6 +9,7 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const formRef = React.useRef<HTMLFormElement | null>(null);
   const { login } = useAuth();
   const t = translations[language as keyof typeof translations].auth as any;
@@ -67,7 +69,15 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
         throw new Error(text || t.systemError);
       }
       
-      if (!res.ok) throw new Error(data.error || t.loginFailed);
+      if (!res.ok) {
+        if (data.code === 'INVALID_CREDENTIALS') {
+          throw new Error(t.invalidCreds || (language === 'zh' ? '邮箱或用户名或密码错误' : 'Invalid email/username or password'));
+        }
+        if (data.code === 'MISSING_CREDENTIALS') {
+          throw new Error(t.validation?.requiredIdentifier || t.loginFailed);
+        }
+        throw new Error(data.error || t.loginFailed || 'Login failed');
+      }
       
       if (rememberMe) {
         localStorage.setItem('rememberedIdentifier', identifier);
@@ -97,7 +107,18 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
         <h2 className="text-2xl font-bold mb-6 text-white">{t.loginTitle}</h2>
         {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
         <input id="login-identifier" name="username" autoComplete="username" type="text" placeholder={t.emailOrUsername} value={identifier} onChange={e => {setIdentifier(e.target.value); setError('');}} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredIdentifier ? 'border-red-400/60' : 'border-white/10'}`} />
-        <input id="login-password" name="password" autoComplete="current-password" type="password" placeholder={t.password} value={password} onChange={e => {setPassword(e.target.value); setError('');}} className={`w-full mb-4 p-3 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredPassword ? 'border-red-400/60' : 'border-white/10'}`} />
+        <div className="relative w-full mb-4">
+          <input id="login-password" name="password" autoComplete="current-password" type={showPassword ? 'text' : 'password'} placeholder={t.password} value={password} onChange={e => {setPassword(e.target.value); setError('');}} className={`w-full p-3 pr-10 bg-black/40 border rounded-lg text-white focus:outline-none focus:border-sfc-orange ${error === t.validation.requiredPassword ? 'border-red-400/60' : 'border-white/10'}`} />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
+            aria-label={showPassword ? (t.hidePassword || 'Hide password') : (t.showPassword || 'Show password')}
+            title={showPassword ? (t.hidePassword || 'Hide password') : (t.showPassword || 'Show password')}
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
         
         <div className="flex flex-col mb-6">
           <div className="flex items-center">
