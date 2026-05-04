@@ -1,5 +1,5 @@
 export const authFetch = async (url: string, options: RequestInit = {}) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || sessionStorage.getItem('token')) : null;
   const headers = new Headers(options.headers || {});
   
   if (token) {

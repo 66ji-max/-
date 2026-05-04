@@ -47,7 +47,9 @@ export const translations = {
         requiredName: '请输入姓名',
         requiredUsername: '请输入用户名',
         requiredConfirmPassword: '请确认密码'
-      }
+      },
+      rememberMe: '记住密码',
+      loggingIn: '登录中...'
     },
     admin: {
       title: '系统管理后台',
@@ -253,7 +255,9 @@ export const translations = {
         requiredName: 'Please enter your name',
         requiredUsername: 'Please enter your username',
         requiredConfirmPassword: 'Please confirm your password'
-      }
+      },
+      rememberMe: 'Remember me',
+      loggingIn: 'Signing in...'
     },
     admin: {
       title: 'Admin Control Panel',

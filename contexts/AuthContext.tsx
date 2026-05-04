@@ -21,7 +21,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   token: string | null;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User, rememberMe?: boolean) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -32,11 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    typeof window !== 'undefined' ? (localStorage.getItem('token') || sessionStorage.getItem('token')) : null
   );
 
   const refreshUser = async () => {
-    const currentToken = localStorage.getItem('token');
+    const currentToken = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (!currentToken) {
       setUser(null);
       setToken(null);
@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
       } else {
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setToken(null);
         setUser(null);
       }
@@ -67,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handle401 = () => {
       localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       setToken(null);
       setUser(null);
     };
@@ -75,8 +77,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('auth_401', handle401);
   }, []);
 
-  const login = (newToken: string, loggedInUser: User) => {
-    localStorage.setItem('token', newToken);
+  const login = (newToken: string, loggedInUser: User, rememberMe: boolean = true) => {
+    if (rememberMe) {
+      localStorage.setItem('token', newToken);
+    } else {
+      sessionStorage.setItem('token', newToken);
+    }
     setToken(newToken);
     setUser(loggedInUser);
     refreshUser();
@@ -84,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setUser(null);
     await fetch('/api/auth?action=logout', { method: 'POST' });
