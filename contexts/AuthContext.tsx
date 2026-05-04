@@ -77,11 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('auth_401', handle401);
   }, []);
 
-  const login = (newToken: string, loggedInUser: User, rememberMe: boolean = true) => {
+  const login = (newToken: string, loggedInUser: User, rememberMe: boolean = false) => {
     if (rememberMe) {
       localStorage.setItem('token', newToken);
+      sessionStorage.removeItem('token');
     } else {
       sessionStorage.setItem('token', newToken);
+      localStorage.removeItem('token');
     }
     setToken(newToken);
     setUser(loggedInUser);
