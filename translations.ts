@@ -48,7 +48,7 @@ export const translations = {
         requiredUsername: '请输入用户名',
         requiredConfirmPassword: '请确认密码'
       },
-      rememberMe: '记住密码',
+      rememberMe: '记住我',
       loggingIn: '登录中...'
     },
     admin: {
