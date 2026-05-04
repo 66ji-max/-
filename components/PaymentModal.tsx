@@ -25,6 +25,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
   const [proofMethod, setProofMethod] = useState<'alipay' | 'tng' | null>(null);
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+       setProofMethod(language === 'zh' ? 'alipay' : 'tng');
+    }
+  }, [isOpen, language]);
+
   if (!isOpen || !order) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,61 +130,66 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div 
-                 className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'tng' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
-                 onClick={() => setProofMethod('tng')}
-              >
-                  <div 
-                      className="relative w-32 h-32 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
-                      onClick={(e) => {
-                          e.stopPropagation();
-                          setProofMethod('tng');
-                          setPreviewImage({ url: '/tng-qr.jpg', title: t.tngQr || 'TNG QR' });
-                      }}
-                  >
-                     <img
-                        src="/tng-qr.jpg"
-                        alt="TNG QR"
-                        className="w-28 h-28 object-contain transition-transform group-hover:scale-105"
-                    />
-                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                         <ZoomIn className="text-white drop-shadow-md" size={28} />
-                     </div>
-                 </div>
-                 <span className="text-sm text-gray-300 font-medium">{t.tngQr}</span>
-                 <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
-                     <ZoomIn size={12} /> {language === 'zh' ? '点击可放大查看' : 'Click to enlarge'}
-                 </span>
-             </div>
-             <div 
-                 className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'alipay' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
-                 onClick={() => setProofMethod('alipay')}
-              >
+          <div className="grid grid-cols-1 gap-4 max-w-xs mx-auto">
+             {language === 'en' && (
                  <div 
-                     className="relative w-32 h-32 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
-                     onClick={(e) => {
-                          e.stopPropagation();
-                          setProofMethod('alipay');
-                          setPreviewImage({ url: getAlipayQrUrl(), title: t.alipayQr || 'Alipay QR' });
-                     }}
+                     className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'tng' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
+                     onClick={() => setProofMethod('tng')}
                   >
-                     {/* NOTE: You MUST upload /alipay-qr-rmb39.jpg, /alipay-qr-rmb99.jpg, /alipay-qr-rmb30.jpg, and /alipay-qr-rmb90.jpg into public/ directory */}
-                    <img
-                      src={getAlipayQrUrl()}
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/alipay-qr.jpg' }}
-                      alt="Alipay QR"
-                      className="w-28 h-28 object-contain transition-transform group-hover:scale-105"
-                    />
-                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                         <ZoomIn className="text-white drop-shadow-md" size={28} />
+                      <div 
+                          className="relative w-40 h-40 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
+                          onClick={(e) => {
+                              e.stopPropagation();
+                              setProofMethod('tng');
+                              setPreviewImage({ url: '/tng-qr.jpg', title: t.tngQr || 'TNG QR' });
+                          }}
+                      >
+                         <img
+                            src="/tng-qr.jpg"
+                            alt="TNG QR"
+                            className="w-36 h-36 object-contain transition-transform group-hover:scale-105"
+                        />
+                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <ZoomIn className="text-white drop-shadow-md" size={32} />
+                         </div>
                      </div>
+                     <span className="text-sm text-gray-300 font-medium">{t.tngQr || 'TNG QR'}</span>
+                     <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                         <ZoomIn size={12} /> Click to enlarge
+                     </span>
                  </div>
-                 <span className="text-sm text-gray-300 font-medium">{t.alipayQr}</span>
-                 <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
-                     <ZoomIn size={12} /> {language === 'zh' ? '点击可放大查看' : 'Click to enlarge'}
-                 </span>
-             </div>
+             )}
+             
+             {language === 'zh' && (
+                 <div 
+                     className={`group bg-zinc-800/50 p-4 rounded-xl flex flex-col items-center justify-center border cursor-pointer transition-all ${proofMethod === 'alipay' ? 'border-sfc-orange ring-1 ring-sfc-orange/50 shadow-[0_0_15px_rgba(255,107,0,0.15)]' : 'border-zinc-700 hover:border-gray-500 hover:shadow-lg'}`}
+                     onClick={() => setProofMethod('alipay')}
+                  >
+                     <div 
+                         className="relative w-40 h-40 bg-white rounded flex items-center justify-center mb-3 overflow-hidden"
+                         onClick={(e) => {
+                              e.stopPropagation();
+                              setProofMethod('alipay');
+                              setPreviewImage({ url: getAlipayQrUrl(), title: t.alipayQr || 'Alipay QR' });
+                         }}
+                      >
+                         {/* NOTE: You MUST upload /alipay-qr-rmb39.jpg, /alipay-qr-rmb99.jpg, /alipay-qr-rmb30.jpg, and /alipay-qr-rmb90.jpg into public/ directory */}
+                        <img
+                          src={getAlipayQrUrl()}
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/alipay-qr.jpg' }}
+                          alt="Alipay QR"
+                          className="w-36 h-36 object-contain transition-transform group-hover:scale-105"
+                        />
+                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                             <ZoomIn className="text-white drop-shadow-md" size={32} />
+                         </div>
+                     </div>
+                     <span className="text-sm text-gray-300 font-medium">{t.alipayQr || '支付宝收款码'}</span>
+                     <span className="text-xs text-sfc-orange mt-1 flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                         <ZoomIn size={12} /> 点击可放大查看
+                     </span>
+                 </div>
+             )}
           </div>
 
           <div className="bg-zinc-800/30 p-4 rounded-xl border border-zinc-700/50 space-y-4">

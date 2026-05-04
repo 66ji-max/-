@@ -251,8 +251,15 @@ const AILabModal: React.FC<AILabModalProps> = ({
                           onClick={() => {
                               onClose();
                               if (onNavigate) {
-                                  sessionStorage.setItem('aiScrollTarget', 'pricing');
-                                  onNavigate('ai-saas');
+                                  const pricingEl = document.getElementById('pricing-section');
+                                  if (pricingEl) {
+                                      setTimeout(() => {
+                                          pricingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                      }, 100);
+                                  } else {
+                                      sessionStorage.setItem('aiScrollTarget', 'pricing');
+                                      onNavigate('ai-saas');
+                                  }
                               }
                           }}
                           className="bg-sfc-orange hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-colors"

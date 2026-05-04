@@ -1,20 +1,64 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Cross-border E-commerce AI SaaS Platform
+# 跨境电商 AI SaaS 合规与运营平台
 
-# Run and deploy your AI Studio app
+## Project Overview
 
-This contains everything you need to run your app locally.
+A comprehensive AI-powered platform tailored for cross-border e-commerce sellers. It provides advanced compliance and operational tools to protect and group businesses efficiently. 
 
-View your app in AI Studio: https://ai.studio/apps/3dc7ad47-005f-4e1e-ae29-fc1418d3df73
+Key functionalities include:
+- **AI Compliance Consulting**: Intelligent policy interpretation and guidance.
+- **Trademark Risk Radar**: Early detection of trademark infringements.
+- **Patent Risk Radar**: Comprehensive patent conflict analysis.
+- **Graphic Infringement Identification**: Multi-modal AI to detect design and visual violations.
+- **Platform Policy Consulting**: Real-time cross-platform (Amazon, eBay, TikTok, etc.) compliance alerts.
+- **Subscription Management**: Automated SAAS plans (Free, Startup, Pro) and billing operations.
+- **Administrator Panel**: Complete oversight for orders, users, and AI interaction histories.
+- **User Dashboard**: Personalized compliance reports and account management.
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React, TypeScript, Tailwind CSS, Vite
+- **Backend/API**: Express (embedded in Vite development flow via SSR / Middleware)
+- **Database**: PostgreSQL with Prisma ORM
+- **AI/LLM**: Google GenAI SDK (Gemini)
 
+## Local Development
+
+Ensure you have Node.js and npm installed.
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   npm install
+   ```
+
+2. Set up environment variables (copy from `.env.example`):
+   ```bash
+   cp .env.example .env
+   ```
+   Add your `DATABASE_URL` and `GEMINI_API_KEY`.
+
+3. Initialize the database:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Build for production:
+   ```bash
+   npm run build
+   ```
+
+## Environment Variables
+
+Check `.env.example` for the required configuration formats:
+- `DATABASE_URL`
+- `GEMINI_API_KEY`
+- `JWT_SECRET`
+
+## License
+MIT License

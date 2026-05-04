@@ -17,6 +17,9 @@ function AppContent() {
 
   // Scroll to top whenever currentPage changes
   useEffect(() => {
+    if (sessionStorage.getItem('aiScrollTarget') === 'pricing') {
+       return;
+    }
     window.scrollTo(0, 0);
   }, [currentPage]);
 

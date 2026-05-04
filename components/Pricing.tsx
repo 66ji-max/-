@@ -117,7 +117,7 @@ export const Pricing: React.FC<{ onNavigate: (page: any) => void; language: Lang
     ];
 
     return (
-        <div className={`w-full max-w-7xl mx-auto ${isPage ? 'pt-32 pb-20' : 'py-20'} px-6`} id="pricing-section">
+        <div className={`w-full max-w-7xl mx-auto ${isPage ? 'pt-32 pb-20' : 'py-20'} px-6 scroll-mt-24`} id="pricing-section">
             {showCouponModal && currentOrder && (
                 <CouponModal
                     isOpen={showCouponModal}
