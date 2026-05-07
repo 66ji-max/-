@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../utils/auth.js';
+import { planLimits } from '../utils/planLimits.js';
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
 const genAI = new GoogleGenAI({ apiKey });
@@ -18,9 +19,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const membership = await prisma.membership.findUnique({ where: { userId } });
-    if (!membership || (membership.plan === "free" && membership.trialRemaining <= 0)) {
-        res.status(403).json({ error: "Trial limit reached. Please upgrade your plan." });
+    if (!membership || (membership.status !== 'active' && membership.status !== 'trial')) {
+        res.status(403).json({ error: "Membership inactive or expired", code: "MEMBERSHIP_INACTIVE" });
         return;
+    }
+    
+    const plan = membership.plan || 'free';
+    const limits = planLimits[plan] || planLimits['free'];
+    
+    if (attachmentFileId && !limits.allowAttachment) {
+        res.status(403).json({ error: "File analysis requires Startup or Pro plan", code: "ATTACHMENT_REQUIRES_STARTUP" });
+        return;
+    }
+    
+    // ECI Check
+    const isEci = topic === 'ECI' || (systemInstruction && systemInstruction.includes('Employee Striver Index')) || (systemInstruction && systemInstruction.includes('ECI'));
+    if (isEci && !limits.allowEci) {
+        res.status(403).json({ error: "ECI analysis requires Pro", code: "ECI_REQUIRES_PRO" });
+        return;
+    }
+    
+    // Daily Limit Check
+    if (limits.dailyAiLimit !== null) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const usageCount = await prisma.usageRecord.count({
+            where: {
+                userId,
+                featureType: 'ai_chat',
+                createdAt: {
+                    gte: today,
+                    lt: tomorrow
+                }
+            }
+        });
+        
+        if (usageCount >= limits.dailyAiLimit) {
+            const code = plan === 'free' ? 'FREE_DAILY_LIMIT_REACHED' : 'STARTUP_DAILY_LIMIT_REACHED';
+            res.status(403).json({ error: "Daily limit reached", code });
+            return;
+        }
     }
     
     let currentSessionId = sessionId;

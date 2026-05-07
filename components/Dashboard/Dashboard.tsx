@@ -8,25 +8,35 @@ import { SupportPanel } from '../SupportPanel';
 export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: string }> = ({ onNavigate, language = 'zh' }) => {
   const { user, token, logout } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
+  const [membershipDetails, setMembershipDetails] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = translations[language as keyof typeof translations].dashboard;
   const ts = translations[language as keyof typeof translations].support;
+  const tai = translations[language as keyof typeof translations].aiSaas;
 
   useEffect(() => {
     if (!user) { onNavigate('login'); return; }
     
-    const fetchFiles = async () => {
+    const fetchData = async () => {
       try {
-        const res = await authFetch('/api/files?action=list');
-        if (res.ok) {
-          const data = await res.json();
-          setFiles(data.files || []);
+        const [filesRes, memberRes] = await Promise.all([
+            authFetch('/api/files?action=list'),
+            authFetch('/api/membership')
+        ]);
+        if (filesRes.ok) {
+          const filesData = await filesRes.json();
+          setFiles(filesData.files || []);
+        }
+        if (memberRes.ok) {
+          const memberData = await memberRes.json();
+          setMembershipDetails(memberData);
         }
       } catch (err) {}
     };
-    fetchFiles();
+    fetchData();
   }, [user, token, onNavigate]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,9 +67,17 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
         if (res.ok) {
           const result = await res.json();
           setFiles(prev => [result.file, ...prev]);
+        } else {
+          const errData = await res.json();
+          if (errData.code === 'FILE_UPLOAD_REQUIRES_STARTUP') {
+             setErrorMsg(tai?.fileUploadRequiresStartup || 'File upload requires Startup or Pro plan');
+          } else {
+             setErrorMsg(t.uploadFailed);
+          }
         }
       } catch (err) {
         console.error("Upload failed", err);
+        setErrorMsg(t.uploadFailed);
       } finally {
         setIsUploading(false);
       }
@@ -82,14 +100,24 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
         
         <div className="p-6 bg-white/5 rounded-xl border border-white/10 mb-8">
             <h3 className="text-xl font-bold mb-2 text-sfc-orange truncate">{t.welcome}{user?.name || user?.email}</h3>
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                 <div className="bg-black/30 p-4 rounded border border-white/5">
                     <p className="text-gray-400 text-sm">{t.subscriptionPlan}</p>
-                    <p className="text-lg font-bold text-white uppercase">{t.planLabels[(user?.membership?.plan as keyof typeof t.planLabels) || 'na']}</p>
+                    <p className="text-lg font-bold text-white uppercase">{t.planLabels[(user?.membership?.plan as keyof typeof t.planLabels) || 'free']}</p>
                 </div>
                 <div className="bg-black/30 p-4 rounded border border-white/5">
                     <p className="text-gray-400 text-sm">{t.accountStatus}</p>
-                    <p className="text-lg font-bold text-white capitalize">{t.statusLabels[(user?.membership?.status as keyof typeof t.statusLabels) || 'na']}</p>
+                    <p className="text-lg font-bold text-white capitalize">{t.statusLabels[(user?.membership?.status as keyof typeof t.statusLabels) || 'trial']}</p>
+                </div>
+                <div className="bg-black/30 p-4 rounded border border-white/5 col-span-2 md:col-span-1">
+                    <p className="text-gray-400 text-sm">{t.todayUsage || 'Today Usage'}</p>
+                    <p className="text-lg font-bold text-white">
+                        {membershipDetails ? (
+                            membershipDetails.limits.dailyAiLimit === null 
+                                ? t.unlimited || 'Unlimited'
+                                : `${membershipDetails.todayUsage} / ${membershipDetails.limits.dailyAiLimit}`
+                        ) : '...'}
+                    </p>
                 </div>
             </div>
             {user?.membership?.plan === 'free' && (
@@ -123,6 +151,8 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
                    </button>
                 </div>
             </div>
+
+            {errorMsg && <div className="mb-4 text-red-400 bg-red-400/10 p-3 rounded text-sm">{errorMsg}</div>}
 
             {files.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 border border-dashed border-gray-700 rounded-lg">

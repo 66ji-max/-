@@ -34,11 +34,38 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
     }
   }, []);
 
+  const checkPermission = (requiredPlan: 'startup' | 'pro'): boolean => {
+      if (!user) {
+          onNavigate('login');
+          return false;
+      }
+      const plan = user.membership?.plan || 'free';
+      const planIndex = { 'free': 0, 'startup': 1, 'pro': 2 };
+      
+      const currentIdx = planIndex[plan as keyof typeof planIndex] || 0;
+      const requiredIdx = planIndex[requiredPlan];
+      
+      if (currentIdx < requiredIdx) {
+          const msg = requiredPlan === 'startup' ? t.requiresStartup : t.requiresPro;
+          const upgradeBtn = t.upgradeNow || 'Upgrade Now';
+          if (window.confirm(`${msg}\n\n${upgradeBtn}?`)) {
+               const el = document.getElementById('pricing-section');
+               if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }
+          return false;
+      }
+      return true;
+  };
+
   const handleRadarClick = (type: 'trademark' | 'patent' | 'image' | 'policy') => {
       if (!user) {
           onNavigate('login');
           return;
       }
+      
+      if (type === 'patent' && !checkPermission('startup')) return;
+      if (type === 'image' && !checkPermission('startup')) return;
+      
       let config = { title: '', instruction: '', greeting: '' };
       switch(type) {
           case 'trademark':
@@ -80,7 +107,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               document.getElementById('radar-section')?.scrollIntoView({ behavior: 'smooth' });
               break;
           case 'eci':
-              if (!user) { onNavigate('login'); return; }
+              if (!checkPermission('pro')) return;
               setActiveRadar({
                   title: t.card2Title,
                   instruction: "You are the ECI Talent Analyst AI. You specialize in HR analytics and predicting employee performance based on multi-dimensional traits. Explain how the 'Striver Index' works and how it helps companies identify top talent.",
@@ -88,7 +115,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'logistics':
-              if (!user) { onNavigate('login'); return; }
+              if (!checkPermission('startup')) return;
               setActiveRadar({
                   title: t.card3Title,
                   instruction: "You are the Smart Logistics Brain. You use machine learning for sales forecasting, inventory placement, and route optimization in cross-border supply chains. You help reduce costs and improve efficiency.",
@@ -96,7 +123,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               });
               break;
           case 'shopping':
-              if (!user) { onNavigate('login'); return; }
+              if (!checkPermission('startup')) return;
               setActiveRadar({
                   title: t.card4Title,
                   instruction: "You are a Next-Gen E-commerce Shopping Assistant. You understand natural language, can recommend products based on vague descriptions, and simulate a personalized shopping experience.",

@@ -158,14 +158,24 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
     }
   };
 
-  const changeMembership = async (id: string, plan: string, status: string) => {
+  const changeMembership = async (id: string, plan: string) => {
+    let status = 'trial';
+    let trialRemaining = 10;
+    if (plan === 'startup') {
+        status = 'active';
+        trialRemaining = 50;
+    } else if (plan === 'pro') {
+        status = 'active';
+        trialRemaining = 9999;
+    }
+
     try {
       const res = await authFetch(`/api/admin?action=update_membership&id=${id}`, {
         method: 'PATCH',
         headers: { 
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ plan, status, trialRemaining: plan === 'pro' ? 9999 : 10 })
+        body: JSON.stringify({ plan, status, trialRemaining })
       });
       if (res.ok) {
         fetchUsers();
@@ -234,15 +244,15 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
                   ) : (
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {u.role !== 'admin' && (
-                            u.membership?.plan !== 'pro' ? (
-                                <button onClick={() => changeMembership(u.id, 'pro', 'active')} className="bg-sfc-orange/20 hover:bg-sfc-orange border border-sfc-orange text-white w-8 h-8 flex items-center justify-center rounded transition-colors" title={t.grantVip}>
-                                    <Star size={14} />
-                                </button>
-                            ) : (
-                                <button onClick={() => changeMembership(u.id, 'free', 'trial')} className="bg-gray-500/20 hover:bg-gray-500 text-white w-8 h-8 flex items-center justify-center border border-gray-500 rounded transition-colors" title={t.revokeVip}>
-                                    <ShieldOff size={14} />
-                                </button>
-                            )
+                            <select 
+                                value={u.membership?.plan || 'free'} 
+                                onChange={(e) => changeMembership(u.id, e.target.value)}
+                                className="bg-black/40 border border-white/20 text-white rounded text-xs py-1 px-2 focus:outline-none focus:border-sfc-orange"
+                            >
+                                <option value="free">{t.setFree || 'Free'}</option>
+                                <option value="startup">{t.setStartup || 'Startup'}</option>
+                                <option value="pro">{t.setPro || 'Pro'}</option>
+                            </select>
                         )}
                         <button onClick={() => handleEdit(u)} className="bg-white/10 hover:bg-white/20 text-white w-8 h-8 flex items-center justify-center rounded transition-colors" title={t.edit}>
                             <Edit size={14} />

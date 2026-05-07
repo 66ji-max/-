@@ -30,8 +30,13 @@ export const streamBackendChat = async (
                 base64Buffer
             })
         });
-        if (!upRes.ok) throw new Error((await upRes.json()).error || "Failed to upload");
-        attachmentFileId = (await upRes.json()).file.id;
+        const upResData = await upRes.json();
+        if (!upRes.ok) {
+            const errObj = new Error(upResData.error || "Failed to upload");
+            (errObj as any).code = upResData.code;
+            throw errObj;
+        }
+        attachmentFileId = upResData.file?.id;
     }
 
     const res = await fetch('/api/ai/chat', {
@@ -43,7 +48,12 @@ export const streamBackendChat = async (
         body: JSON.stringify({ prompt, systemInstruction, attachmentFileId, sessionId, title, topic })
     });
 
-    if (!res.ok) throw new Error((await res.json()).error || "Failed");
+    if (!res.ok) {
+        const responseData = await res.json();
+        const errObj = new Error(responseData.error || "Failed");
+        (errObj as any).code = responseData.code;
+        throw errObj;
+    }
 
     const reader = res.body?.getReader();
     if (!reader) throw new Error("No response body");
@@ -73,7 +83,10 @@ export const streamBackendChat = async (
     }
     return fullText;
   } catch (error: any) {
+    if (error.code) {
+        throw error;
+    }
     onChunk(`\n[System Error] ${error.message}`);
-    return error.message;
+    throw error;
   }
 };

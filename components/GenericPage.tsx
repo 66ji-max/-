@@ -818,7 +818,7 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
                         <FileText size={40} className="text-white" />
                     </div>
                     <h4 className="text-xl font-bold text-white mb-2">{language === 'zh' ? "投递简历" : "Send Resume"}</h4>
-                    <p className="text-gray-400 mb-6">hr@luqinanyang.com</p>
+                    <p className="text-gray-400 mb-6">hr@sailguard.com</p>
                     <button 
                         onClick={() => openApplication()}
                         className="px-8 py-3 bg-white text-sfc-blue rounded-full font-bold hover:bg-gray-100 transition-colors w-full md:w-auto"

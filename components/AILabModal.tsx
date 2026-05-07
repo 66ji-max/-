@@ -187,6 +187,23 @@ const AILabModal: React.FC<AILabModalProps> = ({
       );
       
       refreshUser();
+    } catch (err: any) {
+        const errCode = err.code || '';
+        const tai = translations[language as keyof typeof translations].aiSaas;
+        
+        let displayError = err.message || "[System Error] Failed to generate response";
+        if (errCode === 'FREE_DAILY_LIMIT_REACHED') displayError = tai?.freeDailyLimitReached || displayError;
+        else if (errCode === 'STARTUP_DAILY_LIMIT_REACHED') displayError = tai?.startupDailyLimitReached || displayError;
+        else if (errCode === 'ATTACHMENT_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || displayError;
+        else if (errCode === 'ECI_REQUIRES_PRO') displayError = tai?.eciRequiresPro || displayError;
+        
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === modelMsgId 
+              ? { ...msg, text: msg.text + `\n\n[Error] ${displayError}` } 
+              : msg
+          )
+        );
     } finally {
       setMessages((prev) =>
         prev.map((msg) =>

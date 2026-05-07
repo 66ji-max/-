@@ -50,6 +50,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'update_membership' && req.method === 'PATCH') {
       const { plan, status, trialRemaining, expireAt } = req.body;
+      
+      const validPlans = ['free', 'startup', 'pro'];
+      const validStatuses = ['trial', 'active', 'expired', 'cancelled'];
+      
+      if (plan && !validPlans.includes(plan)) {
+        return res.status(400).json({ error: 'Invalid membership value', code: 'INVALID_MEMBERSHIP_VALUE' });
+      }
+      if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid membership value', code: 'INVALID_MEMBERSHIP_VALUE' });
+      }
+
       const updatedMembership = await prisma.membership.upsert({
         where: { userId: targetUserId },
         create: {

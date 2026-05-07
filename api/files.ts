@@ -18,6 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (action === 'upload' && req.method === 'POST') {
+      const membership = await prisma.membership.findUnique({ where: { userId } });
+      const plan = membership?.plan || 'free';
+      if (plan === 'free') {
+          return res.status(403).json({ code: 'FILE_UPLOAD_REQUIRES_STARTUP', error: 'File upload requires Startup or Pro plan' });
+      }
+
       const { filename, contentType, base64Buffer, size } = req.body;
       if (!base64Buffer || !filename) return res.status(400).json({ error: 'File data empty' });
       

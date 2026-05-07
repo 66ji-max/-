@@ -76,7 +76,11 @@ export const translations = {
       plan: '计划',
       status: '状态',
       grantVip: '设为 PRO',
-      revokeVip: '取消 VIP'
+      revokeVip: '取消 VIP',
+      setFree: '设为免费',
+      setStartup: '设为 Startup',
+      setPro: '设为 Pro',
+      membershipUpdated: '会员已更新'
     },
     dashboard: {
       title: '用户仪表盘',
@@ -92,7 +96,9 @@ export const translations = {
       myFiles: '我的文件',
       uploadFile: '上传文件',
       noFiles: '暂无上传的文件。',
-      uploadFailed: '上传失败'
+      uploadFailed: '上传失败',
+      todayUsage: '今日使用次数',
+      unlimited: '无限制'
     },
     hero: {
       stockCode: '深交所股票代码: 301558',
@@ -126,7 +132,15 @@ export const translations = {
       cardRadar3Title: '图形商标雷达',
       cardRadar3Desc: '采用多模态（图文）召回策略，擅长从复杂的商品背景中准确识别商标特征。',
       cardRadar4Title: '政策雷达',
-      cardRadar4Desc: '实时匹配亚马逊、eBay等平台政策，合规无忧'
+      cardRadar4Desc: '实时匹配亚马逊、eBay等平台政策，合规无忧',
+      
+      requiresStartup: '该功能需要升级到 Startup',
+      requiresPro: '该功能需要升级到 Pro',
+      upgradeNow: '立即升级',
+      freeDailyLimitReached: '免费版今日 AI 次数已用完，请升级套餐',
+      startupDailyLimitReached: 'Startup 今日 AI 次数已用完，请升级 Pro',
+      fileUploadRequiresStartup: '文件上传需要升级到 Startup 或 Pro',
+      eciRequiresPro: 'ECI 分析系统需要升级到 Pro'
     },
     pricing: {
       title: '产品定价与订阅',
@@ -163,7 +177,7 @@ export const translations = {
       approved: '审核通过',
       rejected: '已驳回',
       paymentNote: '付款后请点击“我已付款”。',
-      reviewNote: '我们会在核对到账后尽快为您升级。如超过 24 小时未处理，请联系管理员（hello@luqi.com）。',
+      reviewNote: '我们会在核对到账后尽快为您升级。如超过 24 小时未处理，请联系管理员（hello@sailguard.com）。',
       orderFailed: '创建订单失败',
       paymentFailed: '操作失败，请重试。',
       confirmPay: '确认已付款',
@@ -216,8 +230,8 @@ export const translations = {
   },
   en: {
     brand: {
-      title: 'LuQi Nanyang',
-      subtitle: 'Soaring Upward'
+      title: 'SailGuard AI',
+      subtitle: 'AI Compliance for Global Commerce'
     },
     nav: {
       home: 'Home',
@@ -291,7 +305,11 @@ export const translations = {
       plan: 'Plan',
       status: 'Status',
       grantVip: 'Set PRO',
-      revokeVip: 'Revoke VIP'
+      revokeVip: 'Revoke VIP',
+      setFree: 'Set Free',
+      setStartup: 'Set Startup',
+      setPro: 'Set Pro',
+      membershipUpdated: 'Membership updated'
     },
     dashboard: {
       title: 'User Dashboard',
@@ -307,7 +325,9 @@ export const translations = {
       myFiles: 'My Files',
       uploadFile: 'Upload File',
       noFiles: 'No files uploaded yet.',
-      uploadFailed: 'Upload failed'
+      uploadFailed: 'Upload failed',
+      todayUsage: 'Today’s usage',
+      unlimited: 'Unlimited'
     },
     hero: {
       stockCode: 'SZSE Stock Code: 301558',
@@ -320,8 +340,8 @@ export const translations = {
     aiSaas: {
       section1Title: 'AI x Cross-border E-commerce',
       section1Sub: 'Industry Intelligent Solutions',
-      section1Desc: 'With decades of experience in cross-border e-commerce, LuQiNanYang has accumulated AI applications for cost reduction and efficiency improvement in smart logistics and talent management, and is exploring new shopping methods for the future.',
-      card1Title: 'LuQi Smart Check',
+      section1Desc: 'With decades of experience in cross-border e-commerce, SailGuard AI has accumulated AI applications for cost reduction and efficiency improvement in smart logistics and talent management, and is exploring new shopping methods for the future.',
+      card1Title: 'SailGuard Smart Check',
       card1Desc: 'One-stop cross-border compliance detection tool',
       card2Title: 'ECI Index',
       card2Desc: 'Identifying excellent talents through multi-dimensional talent characteristics and clustering',
@@ -341,7 +361,15 @@ export const translations = {
       cardRadar3Title: 'Image Radar',
       cardRadar3Desc: 'Adopts multi-modal (image-text) recall strategy, adept at identifying trademark features from complex backgrounds.',
       cardRadar4Title: 'Policy Radar',
-      cardRadar4Desc: 'Real-time matching of Amazon, eBay and other platform policies for worry-free compliance'
+      cardRadar4Desc: 'Real-time matching of Amazon, eBay and other platform policies for worry-free compliance',
+      
+      requiresStartup: 'This feature requires Startup',
+      requiresPro: 'This feature requires Pro',
+      upgradeNow: 'Upgrade now',
+      freeDailyLimitReached: 'Free daily AI limit reached. Please upgrade.',
+      startupDailyLimitReached: 'Startup daily AI limit reached. Please upgrade to Pro.',
+      fileUploadRequiresStartup: 'File upload requires Startup or Pro plan.',
+      eciRequiresPro: 'ECI analysis requires Pro.'
     },
     pricing: {
       title: 'Pricing & Subscription',
@@ -378,7 +406,7 @@ export const translations = {
       approved: 'Approved',
       rejected: 'Rejected',
       paymentNote: 'Please click "I Have Paid" after payment.',
-      reviewNote: 'We will upgrade your plan after verifying the payment. If it is not processed within 24 hours, please contact the administrator (hello@luqi.com).',
+      reviewNote: 'We will upgrade your plan after verifying the payment. If it is not processed within 24 hours, please contact the administrator (hello@sailguard.com).',
       orderFailed: 'Failed to create order',
       paymentFailed: 'Action failed. Please try again.',
       confirmPay: 'Yes, I have paid',
