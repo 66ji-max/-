@@ -35,10 +35,14 @@ export const FullLogo: React.FC<FullLogoProps> = ({ className = '', scale = 1, l
             <div className="w-full h-[6px] bg-[#ff6b00] rounded-full my-3"></div>
             
             {/* Subtitle */}
-            <div className="flex justify-between w-full px-1">
-                {subtitleChars.map((char, index) => (
-                   <span key={index} className="text-lg font-bold text-white tracking-widest">{char}</span>
-                ))}
+            <div className={`w-full px-1 ${language === 'en' ? 'text-right' : 'flex justify-between'}`}>
+                {language === 'en' ? (
+                    <span className="text-base font-bold text-white tracking-widest">{t.subtitle}</span>
+                ) : (
+                    subtitleChars.map((char, index) => (
+                       <span key={index} className="text-lg font-bold text-white tracking-widest">{char}</span>
+                    ))
+                )}
             </div>
         </div>
     </div>

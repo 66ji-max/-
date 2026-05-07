@@ -56,28 +56,28 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
         isScrolled ? 'bg-black/90 backdrop-blur-md py-4 shadow-lg' : 'bg-transparent py-6'
       }`}
     >
-      <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex items-center justify-between">
+      <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 xl:px-12 flex items-center justify-between flex-nowrap">
         {/* Left: Logo & Main Nav */}
-        <div className="flex items-center gap-12">
+        <div className={`flex items-center ${language === 'en' ? 'gap-3 xl:gap-8' : 'gap-6 xl:gap-12'} shrink-0`}>
           {/* Navbar Logo - Compact version for Header */}
           <div 
-            className="flex items-center gap-4 cursor-pointer group" 
+            className={`flex items-center ${language === 'en' ? 'gap-2 xl:gap-4' : 'gap-4'} cursor-pointer group shrink-0`} 
             onClick={() => onNavigate('home')}
           >
-            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors" size={100} />
-            <div className="flex flex-col leading-none">
-              <span className="text-4xl font-extrabold tracking-widest text-white">{translations[(language || 'zh') as keyof typeof translations]?.brand?.title || '鹭起南洋'}</span>
-              <span className="text-[14px] text-sfc-orange font-bold tracking-[0.2em] text-right mt-1.5">{translations[(language || 'zh') as keyof typeof translations]?.brand?.subtitle || '扶摇直上'}</span>
+            <EgretLogo className="text-white group-hover:text-sfc-orange transition-colors shrink-0" size={language === 'en' ? 70 : 100} />
+            <div className="flex flex-col leading-none shrink-0">
+              <span className={`font-extrabold tracking-widest text-white whitespace-nowrap ${language === 'en' ? 'text-2xl xl:text-3xl' : 'text-3xl xl:text-4xl'}`}>{translations[(language || 'zh') as keyof typeof translations]?.brand?.title || '鹭起南洋'}</span>
+              <span className={`text-sfc-orange font-bold text-right mt-1.5 whitespace-nowrap ${language === 'en' ? 'text-[10px] xl:text-[12px] tracking-wide' : 'text-[12px] xl:text-[14px] tracking-[0.2em]'}`}>{translations[(language || 'zh') as keyof typeof translations]?.brand?.subtitle || '扶摇直上'}</span>
             </div>
           </div>
 
           {/* Desktop Main Nav */}
-          <div className="hidden lg:flex items-center gap-8">
+          <div className={`hidden lg:flex items-center ${language === 'en' ? 'gap-3 xl:gap-6' : 'gap-6 xl:gap-8'} flex-nowrap shrink-0`}>
             {navItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => handleNavClick(getPageKey(item.key))}
-                className={`text-sm font-medium transition-colors relative ${
+                className={`text-sm font-medium transition-colors relative whitespace-nowrap shrink-0 ${
                   currentPage === getPageKey(item.key)
                     ? 'text-white'
                     : 'text-gray-300 hover:text-white'
@@ -93,15 +93,15 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
         </div>
 
         {/* Right: Language & Secondary Nav */}
-        <div className="hidden lg:flex items-center gap-6">
+        <div className={`hidden lg:flex items-center ${language === 'en' ? 'gap-3 xl:gap-5' : 'gap-5 xl:gap-6'} flex-nowrap shrink-0`}>
             {/* Language Dropdown */}
-            <div className="relative group py-2">
+            <div className="relative group py-2 shrink-0">
                 <div 
-                  className="flex items-center gap-1 text-sm text-gray-300 cursor-pointer group-hover:text-white select-none"
+                  className="flex items-center gap-1 text-sm text-gray-300 cursor-pointer group-hover:text-white select-none whitespace-nowrap shrink-0"
                 >
-                    <Globe size={14} />
-                    <span>Language | 语言</span>
-                    <ChevronDown size={14} className="transition-transform group-hover:rotate-180" />
+                    <Globe size={14} className="shrink-0" />
+                    <span className="whitespace-nowrap">Language | 语言</span>
+                    <ChevronDown size={14} className="transition-transform group-hover:rotate-180 shrink-0" />
                 </div>
                 
                 {/* Dropdown Menu */}
@@ -127,19 +127,19 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                <button 
                  key={item.key} 
                  onClick={() => handleNavClick(item.key as Page)}
-                 className={`flex items-center gap-1 text-sm transition-colors ${currentPage === item.key ? 'text-sfc-orange font-bold' : 'text-gray-300 hover:text-white'}`}
+                 className={`flex items-center gap-1 text-sm transition-colors whitespace-nowrap shrink-0 ${currentPage === item.key ? 'text-sfc-orange font-bold' : 'text-gray-300 hover:text-white'}`}
                >
                     {item.label}
                </button>
             ))}
 
             {/* Auth section */}
-            <div className="relative group py-2 ml-4">
+            <div className="relative group py-2 xl:ml-2 shrink-0">
                {user ? (
                    <>
-                       <div className="flex items-center gap-2 cursor-pointer border border-zinc-700 px-3 py-1.5 rounded-full hover:border-sfc-blue transition-colors">
-                           <UserIcon size={14} className="text-sfc-blue" />
-                           <span className="text-sm font-medium text-white truncate max-w-[120px]">{user.name || user.email}</span>
+                       <div className="flex items-center gap-2 cursor-pointer border border-zinc-700 px-3 py-1.5 rounded-full hover:border-sfc-blue transition-colors shrink-0 whitespace-nowrap">
+                           <UserIcon size={14} className="text-sfc-blue shrink-0" />
+                           <span className="text-sm font-medium text-white truncate max-w-[100px] xl:max-w-[120px]">{user.name || user.email}</span>
                        </div>
                        <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block animate-[fadeIn_0.2s_ease-out]">
                            <div className="bg-white rounded-lg shadow-xl overflow-hidden py-1">
@@ -169,7 +169,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentPage, language, setL
                ) : (
                    <button 
                        onClick={() => onNavigate('login')}
-                       className="bg-sfc-blue text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors"
+                       className="bg-sfc-blue text-white px-4 xl:px-5 py-2 rounded-full text-sm font-bold hover:bg-blue-600 transition-colors whitespace-nowrap shrink-0"
                    >
                        {t.loginRegister}
                    </button>
