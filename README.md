@@ -72,7 +72,7 @@ If OpenAI-compatible keys are not set, it will fallback to official Gemini SDK:
 - `GOOGLE_AI_API_KEY`
 - `API_KEY`
 
-Check your configuration status by visiting `/api/health`.
+Check your configuration status by visiting `/api/auth?action=health`.
 
 ### Other required variables:
 - `DATABASE_URL` / `DIRECT_URL`

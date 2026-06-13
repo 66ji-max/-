@@ -95,6 +95,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name, username: user.username, role: user.role, membership: user.membership, discountCouponClaimed: user.discountCouponClaimed, discountCouponClaimedAt: user.discountCouponClaimedAt } });
     }
 
+    if (action === 'membership' && req.method === 'GET') {
+      const userId = authenticate(req, res);
+      if (!userId) return; // auth helper sends 401
+
+      const membership = await prisma.membership.findUnique({ where: { userId } });
+      const plan = membership?.plan || 'free';
+      const { planLimits } = await import('../server/planLimits.js');
+      const limits = planLimits[plan] || planLimits['free'];
+      
+      let todayUsage = 0;
+      if (limits.dailyAiLimit !== null) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          
+          todayUsage = await prisma.usageRecord.count({
+              where: {
+                  userId,
+                  featureType: 'ai_chat',
+                  createdAt: {
+                      gte: today,
+                      lt: tomorrow
+                  }
+              }
+          });
+      }
+
+      return res.status(200).json({ membership, todayUsage, limits });
+    }
+
     if (action === 'me' && req.method === 'GET') {
       const userId = authenticate(req, res);
       if (!userId) return; // auth helper sends 401

@@ -25,7 +25,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
       try {
         const [filesRes, memberRes] = await Promise.all([
             authFetch('/api/files?action=list'),
-            authFetch('/api/membership')
+            authFetch('/api/auth?action=membership')
         ]);
         if (filesRes.ok) {
           const filesData = await filesRes.json();
