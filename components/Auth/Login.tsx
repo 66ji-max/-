@@ -70,6 +70,27 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
       }
       
       if (!res.ok) {
+        if (data.code === 'PRISMA_MODULE_LOAD_FAILED') {
+          throw new Error(
+            language === 'zh'
+              ? '后端数据库模块加载失败，请检查部署日志'
+              : 'Backend database module failed to load. Please check deployment logs.'
+          );
+        }
+        if (data.code === 'PASSWORD_HASH_MISSING') {
+          throw new Error(
+            language === 'zh'
+              ? '该账号密码数据异常，请重新注册或联系管理员'
+              : 'This account has invalid password data. Please re-register or contact admin.'
+          );
+        }
+        if (data.code === 'LOGIN_SYSTEM_ERROR') {
+          throw new Error(
+            language === 'zh'
+              ? '登录服务异常，请稍后再试'
+              : 'Login service error. Please try again later.'
+          );
+        }
         if (data.code === 'DATABASE_CONNECTION_FAILED' || data.code === 'PRISMA_INIT_FAILED') {
           throw new Error(language === 'zh' ? '数据库连接失败，请检查 Vercel 数据库环境变量' : 'Database connection failed. Please check Vercel database environment variables.');
         }
