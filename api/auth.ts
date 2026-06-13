@@ -106,15 +106,28 @@ function getAiStatus() {
   };
 }
 
+type PrismaLike = any;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __sailguardPrisma: PrismaLike | undefined;
+}
+
 async function loadPrisma() {
   try {
-    const mod = await import('../server/prisma');
+    const prismaClientModule = await import('@prisma/client');
+    const PrismaClient = prismaClientModule.PrismaClient;
+
+    if (!globalThis.__sailguardPrisma) {
+      globalThis.__sailguardPrisma = new PrismaClient();
+    }
+
     return {
-      prisma: mod.default,
+      prisma: globalThis.__sailguardPrisma,
       error: null as any,
     };
   } catch (error: any) {
-    console.error('Failed to load Prisma module:', error);
+    console.error('Failed to load @prisma/client directly in auth route:', error);
     return {
       prisma: null,
       error,
@@ -237,7 +250,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else {
       databaseError = {
-        code: 'PRISMA_MODULE_LOAD_FAILED',
+        code: 'PRISMA_CLIENT_LOAD_FAILED',
         message: getErrorMessage(prismaLoadError).slice(0, 300),
       };
     }
@@ -247,7 +260,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       serverless: 'alive',
       env: getEnvStatus(),
       database: {
-        moduleLoaded: Boolean(prisma),
+        clientLoaded: Boolean(prisma),
         connected: databaseConnected,
         error: databaseError,
       },
@@ -282,7 +295,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     } else {
       databaseError = {
-        code: 'PRISMA_MODULE_LOAD_FAILED',
+        code: 'PRISMA_CLIENT_LOAD_FAILED',
         message: getErrorMessage(prismaLoadError).slice(0, 500),
       };
     }
@@ -291,7 +304,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: true,
       env: getEnvStatus(),
       database: {
-        moduleLoaded: Boolean(prisma),
+        clientLoaded: Boolean(prisma),
         connected: databaseConnected,
         error: databaseError,
       },
@@ -313,10 +326,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { prisma, error: prismaLoadError } = await loadPrisma();
 
       if (!prisma) {
-        console.error('Login failed: Prisma module failed to load:', prismaLoadError);
+        console.error('Login failed: Prisma client failed to load:', prismaLoadError);
         return res.status(500).json({
-          error: 'Prisma module failed to load',
-          code: 'PRISMA_MODULE_LOAD_FAILED',
+          error: 'Prisma client failed to load',
+          code: 'PRISMA_CLIENT_LOAD_FAILED',
         });
       }
 
@@ -425,10 +438,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { prisma, error: prismaLoadError } = await loadPrisma();
 
       if (!prisma) {
-        console.error('Register failed: Prisma module failed to load:', prismaLoadError);
+        console.error('Register failed: Prisma client failed to load:', prismaLoadError);
         return res.status(500).json({
-          error: 'Prisma module failed to load',
-          code: 'PRISMA_MODULE_LOAD_FAILED',
+          error: 'Prisma client failed to load',
+          code: 'PRISMA_CLIENT_LOAD_FAILED',
         });
       }
 
@@ -543,10 +556,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { prisma, error: prismaLoadError } = await loadPrisma();
 
       if (!prisma) {
-        console.error('Me failed: Prisma module failed to load:', prismaLoadError);
+        console.error('Me failed: Prisma client failed to load:', prismaLoadError);
         return res.status(500).json({
-          error: 'Prisma module failed to load',
-          code: 'PRISMA_MODULE_LOAD_FAILED',
+          error: 'Prisma client failed to load',
+          code: 'PRISMA_CLIENT_LOAD_FAILED',
         });
       }
 
@@ -590,10 +603,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { prisma, error: prismaLoadError } = await loadPrisma();
 
       if (!prisma) {
-        console.error('Membership failed: Prisma module failed to load:', prismaLoadError);
+        console.error('Membership failed: Prisma client failed to load:', prismaLoadError);
         return res.status(500).json({
-          error: 'Prisma module failed to load',
-          code: 'PRISMA_MODULE_LOAD_FAILED',
+          error: 'Prisma client failed to load',
+          code: 'PRISMA_CLIENT_LOAD_FAILED',
         });
       }
 

@@ -70,6 +70,13 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
       }
       
       if (!res.ok) {
+        if (data.code === 'PRISMA_CLIENT_LOAD_FAILED') {
+          throw new Error(
+            language === 'zh'
+              ? 'Prisma 客户端加载失败，请检查部署构建日志'
+              : 'Prisma client failed to load. Please check deployment build logs.'
+          );
+        }
         if (data.code === 'PRISMA_MODULE_LOAD_FAILED') {
           throw new Error(
             language === 'zh'
