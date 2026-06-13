@@ -1,5 +1,5 @@
-# Cross-border E-commerce AI SaaS Platform
-# 跨境电商 AI SaaS 合规与运营平台
+# SailGuard AI - 鹭起南洋
+## Cross-border E-commerce AI SaaS Platform
 
 ## Project Overview
 
@@ -8,9 +8,7 @@ A comprehensive AI-powered platform tailored for cross-border e-commerce sellers
 Key functionalities include:
 - **AI Compliance Consulting**: Intelligent policy interpretation and guidance.
 - **Trademark Risk Radar**: Early detection of trademark infringements.
-- **Patent Risk Radar**: Comprehensive patent conflict analysis.
 - **Graphic Infringement Identification**: Multi-modal AI to detect design and visual violations.
-- **Platform Policy Consulting**: Real-time cross-platform (Amazon, eBay, TikTok, etc.) compliance alerts.
 - **Subscription Management**: Automated SAAS plans (Free, Startup, Pro) and billing operations.
 - **Administrator Panel**: Complete oversight for orders, users, and AI interaction histories.
 - **User Dashboard**: Personalized compliance reports and account management.
@@ -18,9 +16,9 @@ Key functionalities include:
 ## Tech Stack
 
 - **Frontend**: React, TypeScript, Tailwind CSS, Vite
-- **Backend/API**: Express (embedded in Vite development flow via SSR / Middleware)
+- **Backend/API**: Vercel Serverless Functions
 - **Database**: PostgreSQL with Prisma ORM
-- **AI/LLM**: Google GenAI SDK (Gemini)
+- **AI/LLM**: Support for OpenAI-compatible and Gemini APIs
 
 ## Local Development
 
@@ -35,7 +33,6 @@ Ensure you have Node.js and npm installed.
    ```bash
    cp .env.example .env
    ```
-   Add your `DATABASE_URL` and `GEMINI_API_KEY`.
 
 3. Initialize the database:
    ```bash
@@ -53,12 +50,34 @@ Ensure you have Node.js and npm installed.
    npm run build
    ```
 
-## Environment Variables
+## Environment Variables / 环境变量说明
 
-Check `.env.example` for the required configuration formats:
-- `DATABASE_URL`
+For AI configuration, we prefer OpenAI-compatible endpoints. The API Key only runs on Vercel serverless API routes and is never exposed to the browser.
+
+### Preferred (OpenAI-compatible)
+- `SAILGUARD_LLM_API_KEY`: Your OpenAI-compatible API key.
+- `SAILGUARD_LLM_BASE_URL`: API Base URL (e.g., `https://max.openai365.top/v1`).
+- `SAILGUARD_LLM_MODEL`: Primary model to use (e.g., `gemini-3.1-pro-preview`).
+- `SAILGUARD_LLM_FALLBACK_MODELS`: Comma-separated list of fallback models.
+
+### Also supported for compatibility
+- `LLM_API_KEY`
+- `LLM_BASE_URL`
+- `LLM_MODEL`
+- `LLM_FALLBACK_MODEL`
+
+### Gemini Official Fallback
+If OpenAI-compatible keys are not set, it will fallback to official Gemini SDK:
 - `GEMINI_API_KEY`
+- `GOOGLE_AI_API_KEY`
+- `API_KEY`
+
+Check your configuration status by visiting `/api/health`.
+
+### Other required variables:
+- `DATABASE_URL` / `DIRECT_URL`
 - `JWT_SECRET`
+- `BLOB_READ_WRITE_TOKEN`
 
 ## License
 MIT License

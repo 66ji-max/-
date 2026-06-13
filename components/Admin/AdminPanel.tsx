@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../translations';
-import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle, Download } from 'lucide-react';
 import { authFetch } from '../../utils/apiClient';
 import { SupportTab } from './SupportTab';
 
@@ -15,6 +15,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
   const [users, setUsers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   
@@ -65,6 +66,58 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadReport = async () => {
+      try {
+          setIsGeneratingReport(true);
+          const { downloadHtmlReport } = await import('../../utils/reportGenerator');
+          
+          const freeCount = users.filter(u => u.membership?.plan === 'free').length;
+          const startupCount = users.filter(u => u.membership?.plan === 'startup').length;
+          const proCount = users.filter(u => u.membership?.plan === 'pro').length;
+          
+          const pendingOrders = orders.filter(o => o.status === 'pending_review').length;
+          const approvedOrders = orders.filter(o => o.status === 'approved').length;
+          const totalAmount = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
+
+          const data = {
+              title: language === 'zh' ? '后台运营报告' : 'Admin Operations Report',
+              meta: {
+                  [language === 'zh' ? '总用户数' : 'Total Users']: users.length,
+                  [language === 'zh' ? 'Free 用户数' : 'Free Users']: freeCount,
+                  [language === 'zh' ? 'Startup 用户数' : 'Startup Users']: startupCount,
+                  [language === 'zh' ? 'Pro 用户数' : 'Pro Users']: proCount,
+                  [language === 'zh' ? '历史订单总数' : 'Total Orders']: orders.length,
+                  [language === 'zh' ? '待审核订单数' : 'Pending Orders']: pendingOrders,
+                  [language === 'zh' ? '已通过订单数' : 'Approved Orders']: approvedOrders,
+                  [language === 'zh' ? '总金额' : 'Total Amount']: totalAmount,
+              },
+              table: {
+                  headers: [
+                      language === 'zh' ? '订单号' : 'Order ID',
+                      language === 'zh' ? '用户邮箱' : 'User Email',
+                      language === 'zh' ? '套餐' : 'Plan',
+                      language === 'zh' ? '金额' : 'Amount',
+                      language === 'zh' ? '状态' : 'Status'
+                  ],
+                  rows: orders.slice(0, 50).map(o => [
+                      o.referenceCode,
+                      o.user?.email,
+                      o.plan,
+                      `${o.amount} ${o.currency}`,
+                      o.status
+                  ])
+              }
+          };
+
+          const dateStr = new Date().toISOString().replace(/\D/g, '').substring(0, 12);
+          downloadHtmlReport(data, `sailguard-admin-${dateStr}`, language);
+      } catch (err) {
+          alert(language === 'zh' ? '报告生成失败，请稍后重试' : 'Failed to generate report. Please try again');
+      } finally {
+          setIsGeneratingReport(false);
+      }
   };
 
   const handleApproveOrder = async (referenceCode: string) => {
@@ -362,16 +415,26 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
   return (
     <div className="pt-32 pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-white">{t.title}</h1>
-        {activeTab === 'users' && (
-            <input 
-                type="text" 
-                placeholder={t.searchPlaceholder} 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange"
-            />
-        )}
+        <h1 className="text-3xl font-bold text-white shrink-0">{t.title}</h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto justify-end">
+            <button
+               onClick={handleDownloadReport}
+               disabled={isGeneratingReport}
+               className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 border border-zinc-700 disabled:opacity-50 select-none shrink-0"
+            >
+               <Download size={16} />
+               {isGeneratingReport ? (language === 'zh' ? '生成中...' : 'Generating...') : (language === 'zh' ? '下载运营报告' : 'Download Admin Report')}
+            </button>
+            {activeTab === 'users' && (
+                <input 
+                    type="text" 
+                    placeholder={t.searchPlaceholder} 
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-sfc-orange flex-1 md:w-64"
+                />
+            )}
+        </div>
       </div>
 
       <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">

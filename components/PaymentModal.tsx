@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Upload, Image as ImageIcon, ZoomIn } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, ZoomIn, Download } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
 import { authFetch } from '../utils/apiClient';
@@ -24,6 +24,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
   const [proofImageContentType, setProofImageContentType] = useState('');
   const [proofMethod, setProofMethod] = useState<'alipay' | 'tng' | null>(null);
   const [previewImage, setPreviewImage] = useState<{url: string, title: string} | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -58,6 +59,33 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
         }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDownloadReport = async () => {
+      try {
+          setIsGeneratingReport(true);
+          const { downloadHtmlReport } = await import('../utils/reportGenerator');
+          
+          const data = {
+              title: language === 'zh' ? '订单付款凭证' : 'Order Payment Receipt',
+              meta: {
+                  [language === 'zh' ? '订单号' : 'Order No']: order.referenceCode,
+                  [language === 'zh' ? '套餐' : 'Plan']: order.plan.toUpperCase(),
+                  [language === 'zh' ? '金额' : 'Amount']: `${order.currency} ${order.amount.toFixed(2)}`,
+                  [language === 'zh' ? '优惠券' : 'Coupon Applied']: order.couponApplied ? (language === 'zh' ? '已应用' : 'Yes') : (language === 'zh' ? '无' : 'No'),
+                  [language === 'zh' ? '生成时间' : 'Generated At']: new Date().toLocaleString()
+              },
+              warning: language === 'zh' ? '管理员审核通过后套餐生效。' : 'Plan will be activated after admin review.',
+              contentHtml: `<div class="content">${language === 'zh' ? `此报告可用作订单的参考凭证，请保存好以备不时之需。<br/>您可以向管理员提供此报告以便核对订单。` : `This report serves as a reference receipt for your order. Keep it safe.<br/>You can provide this report to the admin for checking.`}</div>`
+          };
+
+          const dateStr = new Date().toISOString().replace(/\D/g, '').substring(0, 12);
+          downloadHtmlReport(data, `sailguard-order-${order.referenceCode}`, language);
+      } catch (err) {
+          alert(language === 'zh' ? '报告生成失败，请稍后重试' : 'Failed to generate report. Please try again');
+      } finally {
+          setIsGeneratingReport(false);
+      }
   };
 
   const handleMarkPaid = async () => {
@@ -109,7 +137,17 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, ord
     <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 bg-black/80 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out] pt-8">
       <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative">
         <div className="flex justify-between items-center p-6 border-b border-zinc-800 shrink-0">
-          <h2 className="text-xl font-bold text-white">{t.upgradeTitle} - {order.plan === 'startup' ? translations[language].pricing.startup.name : translations[language].pricing.pro.name}</h2>
+          <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-white">{t.upgradeTitle} - {order.plan === 'startup' ? translations[language].pricing.startup.name : translations[language].pricing.pro.name}</h2>
+              <button
+                  onClick={handleDownloadReport}
+                  disabled={isGeneratingReport}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-1.5 border border-zinc-700 disabled:opacity-50"
+              >
+                  <Download size={12} />
+                  {isGeneratingReport ? (language === 'zh' ? '生成中...' : 'Generating...') : (language === 'zh' ? '下载订单凭证' : 'Download Receipt')}
+              </button>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors" disabled={loading}>
             <X size={24} />
           </button>

@@ -1,11 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
 import prisma from '../utils/prisma.js';
 import { authenticate } from '../utils/auth.js';
 import { planLimits } from '../utils/planLimits.js';
-
-const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
-const genAI = new GoogleGenAI({ apiKey });
+import { streamText, getLLMConfig } from '../utils/llmProvider.js';
 
 export const config = { maxDuration: 60 }; 
 
@@ -24,6 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
     }
     
+    // Config Check
+    const llmConfig = getLLMConfig();
+
     const plan = membership.plan || 'free';
     const limits = planLimits[plan] || planLimits['free'];
     
@@ -113,16 +113,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         contents.push({ role: 'user', parts });
     }
 
-    const responseStream = await genAI.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: { systemInstruction: systemInstruction || "Keep it concise." }
-    });
-
     if (membership.plan === "free") {
         await prisma.membership.update({
             where: { userId },
-            data: { trialRemaining: membership.trialRemaining - 1 }
+            data: { trialRemaining: Math.max(0, membership.trialRemaining - 1) }
         });
     }
 
@@ -130,14 +124,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     
+    if (llmConfig.provider === 'mock') {
+        res.write(`data: ${JSON.stringify({ error: "AI provider is not configured. This is a demo response.", code: "AI_PROVIDER_NOT_CONFIGURED" })}\n\n`);
+        res.write("data: [DONE]\n\n");
+        res.end();
+        return;
+    }
+
     res.write(`data: ${JSON.stringify({ sessionId: currentSessionId })}\n\n`);
 
     let fullResponse = "";
-    for await (const chunk of responseStream) {
-        if (chunk.text) {
-           fullResponse += chunk.text;
-           res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+    try {
+        const stream = streamText({
+            messages: contents,
+            systemInstruction: systemInstruction || "Keep it concise."
+        });
+
+        for await (const chunk of stream) {
+            if (chunk.text) {
+               fullResponse += chunk.text;
+               res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
+            }
         }
+    } catch (err: any) {
+        console.error("LLM Provider Error:", err);
+        res.write(`data: ${JSON.stringify({ error: err.message || "Failed to generate AI response", code: "AI_PROVIDER_ERROR" })}\n\n`);
+        res.end();
+        return;
     }
     
     await prisma.aiChatMessage.create({
@@ -156,8 +169,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error: any) {
-    console.error("AI Error:", error);
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`); 
+    console.error("Internal Error:", error);
+    res.write(`data: ${JSON.stringify({ error: "Internal Server Error", code: "INTERNAL_ERROR" })}\n\n`); 
     res.end();
   }
 }

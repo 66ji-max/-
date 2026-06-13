@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon, Clock, Plus, Trash2, MessageSquare } from 'lucide-react';
+import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon, Clock, Plus, Trash2, MessageSquare, Download } from 'lucide-react';
 import { streamBackendChat } from '../services/geminiService';
 import { ChatMessage, Language } from '../types';
 import { translations } from '../translations';
@@ -32,6 +32,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [history, setHistory] = useState<any[]>([]);
@@ -100,6 +101,40 @@ const AILabModal: React.FC<AILabModalProps> = ({
           }
           fetchHistory();
       } catch (err) {}
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+        setIsGeneratingReport(true);
+        const { downloadHtmlReport } = await import('../utils/reportGenerator');
+        
+        const userQ = messages.filter(m => m.role === 'user').map(m => m.text).join('\n---\n') || '';
+        const aiA = messages.filter(m => m.role === 'model' && m.id !== 'welcome').map(m => m.text).join('\n---\n') || '';
+
+        const data = {
+            title: language === 'zh' ? 'AI 合规分析报告' : 'AI Compliance Analysis Report',
+            meta: {
+                [language === 'zh' ? '用户名/邮箱' : 'User']: user?.name || user?.email,
+                [language === 'zh' ? '当前套餐' : 'Plan']: user?.membership?.plan || 'free',
+                [language === 'zh' ? '功能/模型' : 'Topic']: topic || 'AI Chat',
+                [language === 'zh' ? '带附件' : 'Attachment']: attachedFile ? attachedFile.name : (language === 'zh' ? '否' : 'No')
+            },
+            warning: user?.membership?.plan === 'free' ? (language === 'zh' ? '建议升级到 Pro 解锁无限制高级功能。' : 'Upgrade to Pro for unlimited advanced features.') : undefined,
+            contentHtml: `
+                <h3>${language === 'zh' ? '提问内容' : 'User Query'}</h3>
+                <div class="content">${userQ || (language === 'zh' ? '暂无数据' : 'No data')}</div>
+                <h3>${language === 'zh' ? 'AI 分析结果' : 'AI Analysis'}</h3>
+                <div class="content">${aiA || (language === 'zh' ? '暂无数据' : 'No data')}</div>
+            `
+        };
+
+        const dateStr = new Date().toISOString().replace(/\D/g, '').substring(0, 12);
+        downloadHtmlReport(data, `sailguard-ai-report-${dateStr}`, language);
+    } catch(err) {
+        alert(language === 'zh' ? '报告生成失败，请稍后重试' : 'Failed to generate report. Please try again');
+    } finally {
+        setIsGeneratingReport(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -262,7 +297,17 @@ const AILabModal: React.FC<AILabModalProps> = ({
                 <Cpu className="text-purple-400" size={24} />
                 <h2 className="font-bold text-lg tracking-wide select-none">{topic || 'AI SAAS'}</h2>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                  <button
+                      onClick={handleDownloadReport}
+                      disabled={isGeneratingReport || messages.length <= 1}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                      <Download size={14} />
+                      <span className="hidden md:inline">
+                          {isGeneratingReport ? (language === 'zh' ? '生成中...' : 'Generating...') : (language === 'zh' ? '下载报告' : 'Download Report')}
+                      </span>
+                  </button>
                   {(!user?.membership || user.membership.plan === 'free' || user.membership.status === 'trial') && (
                       <button 
                           onClick={() => {
@@ -279,14 +324,14 @@ const AILabModal: React.FC<AILabModalProps> = ({
                                   }
                               }
                           }}
-                          className="bg-sfc-orange hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-colors"
+                          className="bg-sfc-orange hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-colors ml-2"
                       >
                           {language === 'zh' ? '升级 AI' : 'Upgrade AI'}
                       </button>
                   )}
                   <button 
                     onClick={onClose}
-                    className="text-gray-400 hover:text-white transition-colors"
+                    className="text-gray-400 hover:text-white transition-colors ml-1"
                   >
                     <X size={24} />
                   </button>

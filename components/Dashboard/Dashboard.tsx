@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { FileUp, Trash2, File as FileIcon, Headset } from 'lucide-react';
+import { FileUp, Trash2, File as FileIcon, Headset, Download } from 'lucide-react';
 import { translations } from '../../translations';
 import { authFetch } from '../../utils/apiClient';
 import { SupportPanel } from '../SupportPanel';
@@ -10,6 +10,7 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
   const [files, setFiles] = useState<any[]>([]);
   const [membershipDetails, setMembershipDetails] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,9 +95,55 @@ export const Dashboard: React.FC<{ onNavigate: (page: any) => void; language?: s
     } catch (e) {}
   };
 
+  const handleDownloadReport = async () => {
+      try {
+          setIsGeneratingReport(true);
+          const { downloadHtmlReport } = await import('../../utils/reportGenerator');
+          
+          const usageDisplay = membershipDetails ? (
+            membershipDetails.limits.dailyAiLimit === null 
+                ? (t.unlimited || 'Unlimited')
+                : `${membershipDetails.todayUsage} / ${membershipDetails.limits.dailyAiLimit}`
+          ) : 'N/A';
+
+          const data = {
+              title: language === 'zh' ? '用户使用报告' : 'Usage Report',
+              meta: {
+                  [language === 'zh' ? '用户名/邮箱' : 'User']: user?.name || user?.email,
+                  [language === 'zh' ? '当前套餐' : 'Plan']: t.planLabels[(user?.membership?.plan as keyof typeof t.planLabels) || 'free'],
+                  [language === 'zh' ? '账号状态' : 'Status']: t.statusLabels[(user?.membership?.status as keyof typeof t.statusLabels) || 'trial'],
+                  [language === 'zh' ? '今日AI使用数' : 'Today Usage']: usageDisplay,
+                  [language === 'zh' ? '上传文件总数' : 'Uploaded Files']: files.length.toString()
+              },
+              warning: user?.membership?.plan === 'free' ? (language === 'zh' ? '建议升级到 Pro 解锁无限制高级功能。' : 'Upgrade to Pro for unlimited advanced features.') : undefined,
+              table: {
+                  headers: [language === 'zh' ? '文件名' : 'File Name', language === 'zh' ? '大小' : 'Size', language === 'zh' ? '上传时间' : 'Upload Date'],
+                  rows: files.map(f => [f.originalName, `${(f.size / 1024).toFixed(2)} KB`, new Date(f.createdAt).toLocaleDateString()])
+              }
+          };
+
+          const dateStr = new Date().toISOString().replace(/\D/g, '').substring(0, 12);
+          downloadHtmlReport(data, `sailguard-usage-${dateStr}`, language);
+      } catch (err) {
+          alert(language === 'zh' ? '报告生成失败，请稍后重试' : 'Failed to generate report. Please try again');
+      } finally {
+          setIsGeneratingReport(false);
+      }
+  };
+
   return (
     <div className="pt-32 px-6 pb-20 max-w-5xl mx-auto text-white animate-[fadeIn_0.5s_ease-out]">
-        <h2 className="text-3xl font-bold mb-8">{t.title}</h2>
+        <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold">{t.title}</h2>
+            <button
+               onClick={handleDownloadReport}
+               disabled={isGeneratingReport}
+               className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 border border-zinc-700 disabled:opacity-50"
+            >
+               <Download size={16} />
+               {isGeneratingReport ? (language === 'zh' ? '生成中...' : 'Generating...') : (language === 'zh' ? '下载使用报告' : 'Download Usage Report')}
+            </button>
+        </div>
         
         <div className="p-6 bg-white/5 rounded-xl border border-white/10 mb-8">
             <h3 className="text-xl font-bold mb-2 text-sfc-orange truncate">{t.welcome}{user?.name || user?.email}</h3>
