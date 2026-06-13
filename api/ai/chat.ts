@@ -262,6 +262,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
     }
 
+    sendSse({ type: 'ack' });
     sendSse({ sessionId: currentSessionId });
 
     const oaiMessages = [];

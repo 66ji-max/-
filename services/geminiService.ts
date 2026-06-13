@@ -11,6 +11,21 @@ export const streamBackendChat = async (
 ): Promise<string> => {
   try {
     let attachmentFileId = null;
+    
+    const controller = new AbortController();
+    const overallTimeoutId = setTimeout(() => {
+        controller.abort();
+    }, 60000);
+    
+    let receivedAnyToken = false;
+    const firstTokenTimeoutId = setTimeout(() => {
+        if (!receivedAnyToken) {
+            controller.abort();
+            const err = new Error("AI first response timed out. Please try again.");
+            (err as any).code = 'AI_FIRST_TOKEN_TIMEOUT';
+            throw err;
+        }
+    }, 15000);
 
     if (attachedFile && token) {
         // Upload immediately before query
@@ -45,10 +60,13 @@ export const streamBackendChat = async (
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ prompt, systemInstruction, attachmentFileId, sessionId, title, topic })
+        body: JSON.stringify({ prompt, systemInstruction, attachmentFileId, sessionId, title, topic }),
+        signal: controller.signal
     });
 
     if (!res.ok) {
+        clearTimeout(overallTimeoutId);
+        clearTimeout(firstTokenTimeoutId);
         let responseData: any = {};
         const textData = await res.text();
         try {
@@ -63,39 +81,83 @@ export const streamBackendChat = async (
     }
 
     const reader = res.body?.getReader();
-    if (!reader) throw new Error("No response body");
+    if (!reader) {
+        clearTimeout(overallTimeoutId);
+        clearTimeout(firstTokenTimeoutId);
+        throw new Error("No response body");
+    }
     const decoder = new TextDecoder();
     let fullText = "";
+    let buffer = "";
 
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                try {
-                    const rawData = line.slice(6).trim();
-                    if (!rawData) continue;
-                    const parsed = JSON.parse(rawData);
-                    if (parsed.sessionId && onSessionCreated) {
-                        onSessionCreated(parsed.sessionId);
+    try {
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || '';
+            
+            for (const event of events) {
+                const lines = event.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const rawData = line.slice(6).trim();
+                        if (!rawData) continue;
+                        if (rawData === '[DONE]') {
+                            clearTimeout(overallTimeoutId);
+                            clearTimeout(firstTokenTimeoutId);
+                            return fullText;
+                        }
+                        
+                        try {
+                            const parsed = JSON.parse(rawData);
+                            if (parsed.type === 'ack') {
+                                continue;
+                            }
+                            if (parsed.sessionId && onSessionCreated) {
+                                onSessionCreated(parsed.sessionId);
+                            }
+                            if (parsed.text) {
+                                receivedAnyToken = true;
+                                fullText += parsed.text;
+                                onChunk(parsed.text);
+                            } else if (parsed.error) {
+                                receivedAnyToken = true;
+                                clearTimeout(overallTimeoutId);
+                                clearTimeout(firstTokenTimeoutId);
+                                const err = new Error(parsed.error);
+                                (err as any).code = parsed.code;
+                                throw err;
+                            }
+                        } catch (e: any) {
+                            if (e.code) throw e;
+                            console.error("Failed to parse SSE event:", rawData, e);
+                            if (rawData.includes("A server error") || rawData.includes("<!DOCTYPE html")) {
+                                clearTimeout(overallTimeoutId);
+                                clearTimeout(firstTokenTimeoutId);
+                                const errObj = new Error("AI service is temporarily unavailable. Please try again later.");
+                                (errObj as any).code = "VERCEL_ERROR";
+                                throw errObj;
+                            }
+                        }
                     }
-                    if (parsed.text) {
-                        fullText += parsed.text;
-                        onChunk(parsed.text);
-                    } else if (parsed.error) {
-                        const err = new Error(parsed.error);
-                        (err as any).code = parsed.code;
-                        throw err;
-                    }
-                } catch (e) {} 
+                }
             }
         }
+    } finally {
+        clearTimeout(overallTimeoutId);
+        clearTimeout(firstTokenTimeoutId);
     }
+    
     return fullText;
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+        const errObj = new Error("AI response timed out. Please try again.");
+        (errObj as any).code = "AI_RESPONSE_TIMEOUT";
+        throw errObj;
+    }
     if (error.code) {
         throw error;
     }

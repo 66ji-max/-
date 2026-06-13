@@ -51,17 +51,26 @@ const AILabModal: React.FC<AILabModalProps> = ({
       } catch (err) {}
   };
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
-        if (!user) {
-            onClose();
-            if (onNavigate) onNavigate('login');
-            return;
-        }
-        startNewChat();
-        fetchHistory();
+    if (!isOpen) {
+        hasInitializedRef.current = false;
+        return;
     }
-  }, [isOpen, language, initialGreeting, t.welcome, user, onClose]);
+    
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
+    if (!user) {
+        onClose();
+        if (onNavigate) onNavigate('login');
+        return;
+    }
+    
+    startNewChat();
+    fetchHistory();
+  }, [isOpen, user?.id, language, initialGreeting]);
 
   const startNewChat = () => {
       setSessionId(undefined);
@@ -166,12 +175,17 @@ const AILabModal: React.FC<AILabModalProps> = ({
         if (onNavigate) onNavigate('register');
         return;
     }
-    if ((!input.trim() && !attachedFile) || isLoading) return;
+    
+    const trimmedInput = input.trim();
+    if ((!trimmedInput && !attachedFile) || isLoading) return;
 
-    let displayText = input;
+    let displayText = trimmedInput;
     if (attachedFile) {
-        displayText = `[File: ${attachedFile.name}]\n${input}`;
+        displayText = `[File: ${attachedFile.name}]\n${trimmedInput}`;
     }
+
+    const currentPrompt = trimmedInput || "Describe this file.";
+    const currentFile = attachedFile || undefined;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -182,30 +196,38 @@ const AILabModal: React.FC<AILabModalProps> = ({
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
-    
-    const currentPrompt = input || "Describe this file.";
-    const currentFile = attachedFile || undefined;
     setAttachedFile(null);
 
     const modelMsgId = (Date.now() + 1).toString();
     const modelMsg: ChatMessage = {
       id: modelMsgId,
       role: 'model',
-      text: '',
+      text: language === 'zh' ? '正在分析，请稍候...' : 'Analyzing, please wait...',
       isStreaming: true,
     };
 
     setMessages((prev) => [...prev, modelMsg]);
 
+    let hasReceivedFirstChunk = false;
+
     try {
       await streamBackendChat(
         currentPrompt, 
         (chunk) => {
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === modelMsgId ? { ...msg, text: msg.text + chunk } : msg
-              )
-            );
+             if (!hasReceivedFirstChunk) {
+               hasReceivedFirstChunk = true;
+               setMessages((prev) =>
+                 prev.map((msg) =>
+                   msg.id === modelMsgId ? { ...msg, text: chunk } : msg
+                 )
+               );
+             } else {
+               setMessages((prev) =>
+                 prev.map((msg) =>
+                   msg.id === modelMsgId ? { ...msg, text: msg.text + chunk } : msg
+                 )
+               );
+             }
         }, 
         systemInstruction, 
         currentFile,
@@ -232,7 +254,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
              displayError = language === 'zh' ? 'AI 服务暂时不可用，请稍后重试' : 'AI service is temporarily unavailable. Please try again later.';
         }
 
-        if (errCode === 'FREE_DAILY_LIMIT_REACHED') displayError = tai?.freeDailyLimitReached || displayError;
+        if (errCode === 'AI_FIRST_TOKEN_TIMEOUT') displayError = language === 'zh' ? 'AI 首次响应超时，请稍后重试' : 'AI first response timed out. Please try again.';
+        else if (errCode === 'AI_RESPONSE_TIMEOUT') displayError = language === 'zh' ? 'AI 响应超时，请稍后重试' : 'AI response timed out. Please try again.';
+        else if (errCode === 'AI_PROVIDER_NOT_CONFIGURED') displayError = language === 'zh' ? 'AI 服务未配置，请检查 API Key' : 'AI service is not configured. Please check API key.';
+        else if (errCode === 'AI_PROVIDER_ERROR') displayError = language === 'zh' ? 'AI 服务调用失败，请检查 API Key 或模型配置' : 'AI provider failed. Please check API key or model configuration.';
+        else if (errCode === 'VERCEL_ERROR') displayError = language === 'zh' ? 'AI 后端服务异常，请检查部署日志' : 'AI backend service error. Please check deployment logs.';
+        else if (errCode === 'FREE_DAILY_LIMIT_REACHED') displayError = tai?.freeDailyLimitReached || displayError;
         else if (errCode === 'STARTUP_DAILY_LIMIT_REACHED') displayError = tai?.startupDailyLimitReached || displayError;
         else if (errCode === 'ATTACHMENT_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || displayError;
         else if (errCode === 'ECI_REQUIRES_PRO') displayError = tai?.eciRequiresPro || displayError;
