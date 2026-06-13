@@ -61,12 +61,15 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
         body: JSON.stringify({ identifier, password })
       });
       
+      if (!res.ok && res.status >= 500) {
+        throw new Error(language === 'zh' ? '系统错误，请稍后再试' : 'System error, please try again');
+      }
       const text = await res.text();
       let data;
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        throw new Error(text || t.systemError);
+        throw new Error(language === 'zh' ? '系统错误，请稍后再试' : 'System error, please try again');
       }
       
       if (!res.ok) {

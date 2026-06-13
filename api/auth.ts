@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../server/prisma.js';
-import { authenticate } from '../server/auth.js';
-import { getLLMConfig, checkStatus } from '../server/llmProvider.js';
+import prisma from '../server/prisma';
+import { authenticate } from '../server/auth';
+import { getLLMConfig, checkStatus } from '../server/llmProvider';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action || req.body?.action;
@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const membership = await prisma.membership.findUnique({ where: { userId } });
       const plan = membership?.plan || 'free';
-      const { planLimits } = await import('../server/planLimits.js');
+      const { planLimits } = await import('../server/planLimits');
       const limits = planLimits[plan] || planLimits['free'];
       
       let todayUsage = 0;
