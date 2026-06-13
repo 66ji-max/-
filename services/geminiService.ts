@@ -49,7 +49,14 @@ export const streamBackendChat = async (
     });
 
     if (!res.ok) {
-        const responseData = await res.json();
+        let responseData: any = {};
+        const textData = await res.text();
+        try {
+            responseData = JSON.parse(textData);
+        } catch (e) {
+            console.error("Vercel or Network Error:", textData);
+            responseData = { error: "AI service is temporarily unavailable. Please try again later.", code: "VERCEL_ERROR" };
+        }
         const errObj = new Error(responseData.error || "Failed");
         (errObj as any).code = responseData.code;
         throw errObj;
@@ -69,14 +76,20 @@ export const streamBackendChat = async (
         for (const line of lines) {
             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
                 try {
-                    const parsed = JSON.parse(line.slice(6));
+                    const rawData = line.slice(6).trim();
+                    if (!rawData) continue;
+                    const parsed = JSON.parse(rawData);
                     if (parsed.sessionId && onSessionCreated) {
                         onSessionCreated(parsed.sessionId);
                     }
                     if (parsed.text) {
                         fullText += parsed.text;
                         onChunk(parsed.text);
-                    } else if (parsed.error) throw new Error(parsed.error);
+                    } else if (parsed.error) {
+                        const err = new Error(parsed.error);
+                        (err as any).code = parsed.code;
+                        throw err;
+                    }
                 } catch (e) {} 
             }
         }

@@ -223,10 +223,15 @@ const AILabModal: React.FC<AILabModalProps> = ({
       
       refreshUser();
     } catch (err: any) {
+        console.error("Chat Stream Error:", err);
         const errCode = err.code || '';
         const tai = translations[language as keyof typeof translations].aiSaas;
         
         let displayError = err.message || "[System Error] Failed to generate response";
+        if (displayError.includes("Unexpected token") || displayError.includes("A server error") || displayError.includes("Unexpected end of JSON input")) {
+             displayError = language === 'zh' ? 'AI 服务暂时不可用，请稍后重试' : 'AI service is temporarily unavailable. Please try again later.';
+        }
+
         if (errCode === 'FREE_DAILY_LIMIT_REACHED') displayError = tai?.freeDailyLimitReached || displayError;
         else if (errCode === 'STARTUP_DAILY_LIMIT_REACHED') displayError = tai?.startupDailyLimitReached || displayError;
         else if (errCode === 'ATTACHMENT_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || displayError;
