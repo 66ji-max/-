@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { put, del } from '@vercel/blob';
-import prisma from '../server/prisma.js';
-import { authenticate } from '../server/auth.js';
+import prisma from '../server/prisma';
+import { authenticate } from '../server/auth';
 
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 

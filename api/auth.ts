@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../server/prisma';
 import { authenticate } from '../server/auth';
 import { getLLMConfig, checkStatus } from '../server/llmProvider';
+import { planLimits } from '../server/planLimits';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action || req.body?.action;
@@ -101,8 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const membership = await prisma.membership.findUnique({ where: { userId } });
       const plan = membership?.plan || 'free';
-      const { planLimits } = await import('../server/planLimits');
-      const limits = planLimits[plan] || planLimits['free'];
+      const limits = planLimits[plan as keyof typeof planLimits] || planLimits['free'];
       
       let todayUsage = 0;
       if (limits.dailyAiLimit !== null) {
