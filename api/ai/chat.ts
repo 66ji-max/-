@@ -162,35 +162,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { prisma, error: prismaError } = await loadPrisma();
-  if (!prisma) {
-    sendSse({ error: 'Prisma client failed to load', code: 'PRISMA_CLIENT_LOAD_FAILED' });
-    finishSse();
-    return;
+  
+  let dbAvailable = false;
+  if (prisma) {
+      try {
+          await prisma.$queryRaw`SELECT 1`;
+          dbAvailable = true;
+      } catch (error) {
+          console.error('AI chat database unavailable, continuing without history:', error);
+          dbAvailable = false;
+      }
   }
 
   const { prompt, systemInstruction, attachmentFileId, sessionId, title, topic } = req.body;
 
   try {
-    let databaseConnected = false;
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      databaseConnected = true;
-    } catch {
-       // Let the actual query catch block handle DB down
+    let membership: any = null;
+    let plan = 'free';
+    let limits: typeof PLAN_LIMITS[keyof typeof PLAN_LIMITS] = PLAN_LIMITS['free'];
+
+    if (dbAvailable && prisma) {
+      try {
+        membership = await prisma.membership.findUnique({ where: { userId } });
+      } catch (error) {
+        console.error('Failed to find membership, using fallback:', error);
+      }
     }
 
-    const membership = await prisma.membership.findUnique({ where: { userId } });
-    if (!membership || (membership.status !== 'active' && membership.status !== 'trial')) {
-      sendSse({ error: "Membership inactive or expired", code: "MEMBERSHIP_INACTIVE" });
+    if (dbAvailable && membership) {
+      if (membership.status !== 'active' && membership.status !== 'trial') {
+        sendSse({ error: "Membership inactive or expired", code: "MEMBERSHIP_INACTIVE" });
+        finishSse();
+        return;
+      }
+      plan = membership.plan || 'free';
+      limits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS['free'];
+    } else {
+      // Fallback
+      membership = {
+        plan: 'free',
+        status: 'trial',
+        trialRemaining: 10
+      };
+    }
+    
+    if (attachmentFileId && !dbAvailable) {
+      sendSse({ error: "File analysis requires database connection. Please try again later.", code: "DATABASE_REQUIRED_FOR_FILE" });
       finishSse();
       return;
     }
-    
-    const llmConfig = getLLMConfigLocal();
 
-    const plan = membership.plan || 'free';
-    const limits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS['free'];
-    
     if (attachmentFileId && !limits.allowAttachment) {
       sendSse({ error: "File analysis requires Startup or Pro plan", code: "ATTACHMENT_REQUIRES_STARTUP" });
       finishSse();
@@ -198,63 +219,95 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     
     const isEci = topic === 'ECI' || (systemInstruction && systemInstruction.includes('Employee Striver Index')) || (systemInstruction && systemInstruction.includes('ECI'));
+    if (isEci && !dbAvailable) {
+      sendSse({ error: "Unable to verify membership. Please try again later.", code: "MEMBERSHIP_CHECK_UNAVAILABLE" });
+      finishSse();
+      return;
+    }
     if (isEci && !limits.allowEci) {
         sendSse({ error: "ECI analysis requires Pro", code: "ECI_REQUIRES_PRO" });
         finishSse();
         return;
     }
     
-    if (limits.dailyAiLimit !== null) {
+    if (dbAvailable && prisma && limits.dailyAiLimit !== null) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         
-        const usageCount = await prisma.usageRecord.count({
-            where: {
-                userId,
-                featureType: 'ai_chat',
-                createdAt: {
-                    gte: today,
-                    lt: tomorrow
+        try {
+            const usageCount = await prisma.usageRecord.count({
+                where: {
+                    userId,
+                    featureType: 'ai_chat',
+                    createdAt: {
+                        gte: today,
+                        lt: tomorrow
+                    }
                 }
+            });
+            
+            if (usageCount >= limits.dailyAiLimit) {
+                const code = plan === 'free' ? 'FREE_DAILY_LIMIT_REACHED' : 'STARTUP_DAILY_LIMIT_REACHED';
+                sendSse({ error: "Daily limit reached", code });
+                finishSse();
+                return;
             }
-        });
-        
-        if (usageCount >= limits.dailyAiLimit) {
-            const code = plan === 'free' ? 'FREE_DAILY_LIMIT_REACHED' : 'STARTUP_DAILY_LIMIT_REACHED';
-            sendSse({ error: "Daily limit reached", code });
-            finishSse();
-            return;
+        } catch (error) {
+            console.error("Failed to check daily limit:", error);
         }
     }
     
     let currentSessionId = sessionId;
-    if (!currentSessionId) {
-        const generatedTitle = title || (prompt && prompt.substring(0, 30)) || 'New Chat';
-        const session = await prisma.aiChatSession.create({
-            data: { userId, title: generatedTitle, topic }
-        });
-        currentSessionId = session.id;
-    }
-    
-    if (prompt) {
-        await prisma.aiChatMessage.create({
-            data: { sessionId: currentSessionId, role: 'user', content: prompt, attachmentFileId }
-        });
+    if (dbAvailable && prisma) {
+        if (!currentSessionId) {
+            try {
+                const generatedTitle = title || (prompt && prompt.substring(0, 30)) || 'New Chat';
+                const session = await prisma.aiChatSession.create({
+                    data: { userId, title: generatedTitle, topic }
+                });
+                currentSessionId = session.id;
+            } catch (error) {
+                console.error("Failed to create session:", error);
+            }
+        }
+        
+        if (prompt && currentSessionId) {
+            try {
+                await prisma.aiChatMessage.create({
+                    data: { sessionId: currentSessionId, role: 'user', content: prompt, attachmentFileId }
+                });
+            } catch (error) {
+                console.error("Failed to create user message log:", error);
+            }
+        }
     }
 
-    const historyMessages = await prisma.aiChatMessage.findMany({
-        where: { sessionId: currentSessionId },
-        orderBy: { createdAt: 'asc' }
-    });
-    
-    if (membership.plan === "free") {
-        await prisma.membership.update({
-            where: { userId },
-            data: { trialRemaining: Math.max(0, membership.trialRemaining - 1) }
-        });
+    let historyMessages: any[] = [];
+    if (dbAvailable && prisma && currentSessionId) {
+        try {
+            historyMessages = await prisma.aiChatMessage.findMany({
+                where: { sessionId: currentSessionId },
+                orderBy: { createdAt: 'asc' }
+            });
+        } catch (error) {
+            console.error("Failed to load history messages:", error);
+        }
     }
+    
+    if (dbAvailable && prisma && membership.plan === "free" && membership.trialRemaining !== undefined) {
+        try {
+            await prisma.membership.update({
+                where: { userId },
+                data: { trialRemaining: Math.max(0, membership.trialRemaining - 1) }
+            });
+        } catch (error) {
+           console.error("Failed to update membership trial:", error);
+        }
+    }
+
+    const llmConfig = getLLMConfigLocal();
 
     if (!llmConfig.configured) {
         sendSse({ text: "AI provider is not configured. This is a demo response.", code: "AI_PROVIDER_NOT_CONFIGURED" });
@@ -263,15 +316,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     sendSse({ type: 'ack' });
-    sendSse({ sessionId: currentSessionId });
+    if (!dbAvailable) {
+        sendSse({ type: 'warning', code: 'DATABASE_UNAVAILABLE_HISTORY_DISABLED' });
+    }
+
+    if (currentSessionId) {
+        sendSse({ sessionId: currentSessionId });
+    }
 
     const oaiMessages = [];
     if (systemInstruction) {
       oaiMessages.push({ role: 'system', content: systemInstruction });
     }
-    for (const msg of historyMessages) {
-       const role = msg.role === "model" ? "assistant" : msg.role;
-       oaiMessages.push({ role, content: msg.content });
+
+    if (historyMessages.length > 0) {
+        for (const msg of historyMessages) {
+           const role = msg.role === "model" ? "assistant" : msg.role;
+           oaiMessages.push({ role, content: msg.content });
+        }
+    } else if (prompt) {
+        oaiMessages.push({ role: 'user', content: prompt });
     }
 
     let fullResponse = "";
@@ -335,25 +399,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    if (fullResponse) {
-       await prisma.aiChatMessage.create({
-           data: { sessionId: currentSessionId, role: 'model', content: fullResponse }
-       });
-       
-       await prisma.aiChatSession.update({
-           where: { id: currentSessionId },
-           data: { updatedAt: new Date() }
-       });
-       
-       await prisma.usageRecord.create({
-           data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
-       });
+    if (dbAvailable && prisma && fullResponse && currentSessionId) {
+        try {
+           await prisma.aiChatMessage.create({
+               data: { sessionId: currentSessionId, role: 'model', content: fullResponse }
+           });
+           
+           await prisma.aiChatSession.update({
+               where: { id: currentSessionId },
+               data: { updatedAt: new Date() }
+           });
+           
+           await prisma.usageRecord.create({
+               data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
+           });
+        } catch (error) {
+           console.error("Failed to save AI reply or usage:", error);
+        }
     }
 
     finishSse();
   } catch (error: any) {
-    console.error("Database connection failed:", error);
-    sendSse({ error: "Database connection failed", code: "DATABASE_CONNECTION_FAILED" });
+    console.error("Unexpected Internal Error:", error);
+    sendSse({ error: "Internal Error", code: "INTERNAL_ERROR" });
     finishSse();
   }
 }

@@ -259,6 +259,8 @@ const AILabModal: React.FC<AILabModalProps> = ({
         else if (errCode === 'AI_PROVIDER_NOT_CONFIGURED') displayError = language === 'zh' ? 'AI 服务未配置，请检查 API Key' : 'AI service is not configured. Please check API key.';
         else if (errCode === 'AI_PROVIDER_ERROR') displayError = language === 'zh' ? 'AI 服务调用失败，请检查 API Key 或模型配置' : 'AI provider failed. Please check API key or model configuration.';
         else if (errCode === 'VERCEL_ERROR') displayError = language === 'zh' ? 'AI 后端服务异常，请检查部署日志' : 'AI backend service error. Please check deployment logs.';
+        else if (errCode === 'DATABASE_REQUIRED_FOR_FILE') displayError = language === 'zh' ? '文件分析需要数据库连接，请稍后重试' : 'File analysis requires database connection. Please try again later.';
+        else if (errCode === 'MEMBERSHIP_CHECK_UNAVAILABLE') displayError = language === 'zh' ? '暂时无法验证会员权限，请稍后重试' : 'Unable to verify membership. Please try again later.';
         else if (errCode === 'FREE_DAILY_LIMIT_REACHED') displayError = tai?.freeDailyLimitReached || displayError;
         else if (errCode === 'STARTUP_DAILY_LIMIT_REACHED') displayError = tai?.startupDailyLimitReached || displayError;
         else if (errCode === 'ATTACHMENT_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || displayError;

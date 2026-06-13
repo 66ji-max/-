@@ -116,6 +116,10 @@ export const streamBackendChat = async (
                             if (parsed.type === 'ack') {
                                 continue;
                             }
+                            if (parsed.type === 'warning') {
+                                console.warn("Backend warning:", parsed);
+                                continue;
+                            }
                             if (parsed.sessionId && onSessionCreated) {
                                 onSessionCreated(parsed.sessionId);
                             }
