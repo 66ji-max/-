@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from '../utils/prisma.js';
-import { authenticate } from '../utils/auth.js';
-import { planLimits } from '../utils/planLimits.js';
-import { streamText, getLLMConfig } from '../utils/llmProvider.js';
+import prisma from '../../server/prisma.js';
+import { authenticate } from '../../server/auth.js';
+import { planLimits } from '../../server/planLimits.js';
+import { streamText, getLLMConfig } from '../../server/llmProvider.js';
 
 export const config = { maxDuration: 60 }; 
 

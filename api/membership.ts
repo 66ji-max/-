@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from './utils/prisma.js';
-import { authenticate } from './utils/auth.js';
-import { planLimits } from './utils/planLimits.js';
+import prisma from '../server/prisma.js';
+import { authenticate } from '../server/auth.js';
+import { planLimits } from '../server/planLimits.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method Not Allowed' });

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from '../utils/prisma.js';
-import { authenticate } from '../utils/auth.js';
+import prisma from '../../server/prisma.js';
+import { authenticate } from '../../server/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action || req.body?.action;

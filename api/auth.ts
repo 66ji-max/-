@@ -1,13 +1,43 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from './utils/prisma.js';
-import { authenticate } from './utils/auth.js';
+import prisma from '../server/prisma.js';
+import { authenticate } from '../server/auth.js';
+import { getLLMConfig, checkStatus } from '../server/llmProvider.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action || req.body?.action;
 
   try {
+    if (action === 'health' && req.method === 'GET') {
+        const config = getLLMConfig();
+        const aiStatus = await checkStatus();
+
+        let databaseConfigured = false;
+        try {
+            await prisma.$queryRaw`SELECT 1`;
+            databaseConfigured = true;
+        } catch {
+            databaseConfigured = false;
+        }
+
+        const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+        return res.status(200).json({
+            status: "ok",
+            ai: {
+                provider: config.provider,
+                configured: config.configured,
+                baseUrlConfigured: config.baseUrlConfigured,
+                model: config.model,
+                fallbackModels: config.fallbackModels,
+                status: aiStatus.status
+            },
+            databaseConfigured,
+            blobConfigured
+        });
+    }
+
     if (action === 'register' && req.method === 'POST') {
       const { email, password, username, name } = req.body;
       if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
