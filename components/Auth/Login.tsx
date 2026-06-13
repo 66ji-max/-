@@ -61,9 +61,6 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
         body: JSON.stringify({ identifier, password })
       });
       
-      if (!res.ok && res.status >= 500) {
-        throw new Error(language === 'zh' ? '系统错误，请稍后再试' : 'System error, please try again');
-      }
       const text = await res.text();
       let data;
       try {
@@ -73,13 +70,19 @@ export const Login: React.FC<{ onNavigate: (page: any) => void; language: string
       }
       
       if (!res.ok) {
+        if (data.code === 'DATABASE_CONNECTION_FAILED' || data.code === 'PRISMA_INIT_FAILED') {
+          throw new Error(language === 'zh' ? '数据库连接失败，请检查 Vercel 数据库环境变量' : 'Database connection failed. Please check Vercel database environment variables.');
+        }
+        if (data.code === 'PASSWORD_VERIFIER_FAILED') {
+          throw new Error(language === 'zh' ? '密码验证服务异常，请稍后重试' : 'Password verification service error. Please try again later.');
+        }
         if (data.code === 'INVALID_CREDENTIALS') {
-          throw new Error(t.invalidCreds || (language === 'zh' ? '邮箱或用户名或密码错误' : 'Invalid email/username or password'));
+          throw new Error(language === 'zh' ? '邮箱或用户名或密码错误' : 'Invalid email/username or password');
         }
         if (data.code === 'MISSING_CREDENTIALS') {
-          throw new Error(t.validation?.requiredIdentifier || t.loginFailed);
+          throw new Error(t.validation?.requiredIdentifier || (language === 'zh' ? '请输入邮箱/用户名和密码' : 'Missing credentials'));
         }
-        throw new Error(data.error || t.loginFailed || 'Login failed');
+        throw new Error(data.error || t.loginFailed || (language === 'zh' ? '登录失败' : 'Login failed'));
       }
       
       if (rememberMe) {

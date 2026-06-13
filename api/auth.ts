@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../server/prisma';
 import { authenticate } from '../server/auth';
@@ -15,17 +15,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const aiStatus = await checkStatus();
 
         let databaseConfigured = false;
+        let databaseConnected = false;
         try {
             await prisma.$queryRaw`SELECT 1`;
             databaseConfigured = true;
+            databaseConnected = true;
         } catch {
             databaseConfigured = false;
+            databaseConnected = false;
         }
 
         const blobConfigured = !!process.env.BLOB_READ_WRITE_TOKEN;
 
         return res.status(200).json({
             status: "ok",
+            database: {
+              configured: databaseConfigured,
+              connected: databaseConnected,
+              hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+              hasPostgresPrismaUrl: Boolean(process.env.POSTGRES_PRISMA_URL),
+              hasPostgresUrlNonPooling: Boolean(process.env.POSTGRES_URL_NON_POOLING),
+              hasDirectUrl: Boolean(process.env.DIRECT_URL)
+            },
             ai: {
                 provider: config.provider,
                 configured: config.configured,
@@ -34,9 +45,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 fallbackModels: config.fallbackModels,
                 status: aiStatus.status
             },
-            databaseConfigured,
             blobConfigured
         });
+    }
+
+    if (action === 'debug' && req.method === 'GET') {
+      if (process.env.AUTH_DEBUG !== '1') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      let databaseConnected = false;
+      let dbError: any = null;
+
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        databaseConnected = true;
+      } catch (err: any) {
+        dbError = {
+          code: err?.code,
+          message: err?.message
+        };
+      }
+
+      return res.status(200).json({
+        env: {
+          hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+          hasPostgresPrismaUrl: Boolean(process.env.POSTGRES_PRISMA_URL),
+          hasPostgresUrlNonPooling: Boolean(process.env.POSTGRES_URL_NON_POOLING),
+          hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+          hasDirectUrl: Boolean(process.env.DIRECT_URL),
+          hasJwtSecret: Boolean(process.env.JWT_SECRET),
+          hasBlobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+        },
+        database: {
+          connected: databaseConnected,
+          error: dbError
+        }
+      });
     }
 
     if (action === 'register' && req.method === 'POST') {
@@ -153,6 +198,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return res.status(409).json({ error: 'Unique constraint failed', code: 'DUPLICATE_VALUE' });
     }
-    res.status(500).json({ error: error.message || 'System error' });
+
+    const msg = error?.message || '';
+    
+    if (
+      msg.includes('Environment variable not found') ||
+      msg.includes('DATABASE_URL') ||
+      msg.includes('DIRECT_URL') ||
+      msg.includes('POSTGRES_URL_NON_POOLING') ||
+      msg.includes("Can't reach database server") ||
+      error?.code === 'P1001' ||
+      error?.code === 'P1017'
+    ) {
+      return res.status(500).json({
+        error: "Database connection failed",
+        code: "DATABASE_CONNECTION_FAILED"
+      });
+    }
+
+    if (msg.includes('PrismaClient') || msg.includes('Prisma initialization') || error?.clientVersion) {
+      return res.status(500).json({
+        error: "Prisma initialization failed",
+        code: "PRISMA_INIT_FAILED"
+      });
+    }
+
+    if (msg.includes('bcrypt') || msg.includes('data and hash must be strings')) {
+      return res.status(500).json({
+        error: "Password verifier failed",
+        code: "PASSWORD_VERIFIER_FAILED"
+      });
+    }
+
+    res.status(500).json({ error: 'System error', code: 'SYSTEM_ERROR' });
   }
 }
