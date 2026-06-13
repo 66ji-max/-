@@ -120,6 +120,10 @@ export const streamBackendChat = async (
                                 console.warn("Backend warning:", parsed);
                                 continue;
                             }
+                            if (parsed.type === 'status') {
+                                console.info("Backend status:", parsed);
+                                continue;
+                            }
                             if (parsed.sessionId && onSessionCreated) {
                                 onSessionCreated(parsed.sessionId);
                             }

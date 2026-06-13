@@ -236,13 +236,14 @@ const AILabModal: React.FC<AILabModalProps> = ({
         (newSessionId) => {
             if (!sessionId) {
                 setSessionId(newSessionId);
-                fetchHistory(); // Refresh list to show new session
+                fetchHistory(); // Refresh list to show new session ID early
             }
         },
         topic || 'AI Chat',
         topic
       );
       
+      await fetchHistory();
       refreshUser();
     } catch (err: any) {
         console.error("Chat Stream Error:", err);

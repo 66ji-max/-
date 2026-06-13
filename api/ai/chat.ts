@@ -268,8 +268,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     data: { userId, title: generatedTitle, topic }
                 });
                 currentSessionId = session.id;
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to create session:", error);
+                const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'SESSION_SAVE_FAILED';
+                sendSse({ type: 'warning', code, message: 'Failed to create chat session.' });
             }
         }
         
@@ -278,8 +280,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 await prisma.aiChatMessage.create({
                     data: { sessionId: currentSessionId, role: 'user', content: prompt, attachmentFileId }
                 });
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to create user message log:", error);
+                const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'USER_MESSAGE_SAVE_FAILED';
+                sendSse({ type: 'warning', code, message: 'Failed to save user message.' });
             }
         }
     }
@@ -317,7 +321,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     sendSse({ type: 'ack' });
     if (!dbAvailable) {
-        sendSse({ type: 'warning', code: 'DATABASE_UNAVAILABLE_HISTORY_DISABLED' });
+        sendSse({ type: 'warning', code: 'DATABASE_UNAVAILABLE_HISTORY_DISABLED', message: 'Chat history is disabled because database is unavailable.' });
+    } else {
+        sendSse({ type: 'status', code: 'DATABASE_AVAILABLE', message: 'Chat history enabled.' });
     }
 
     if (currentSessionId) {
@@ -413,8 +419,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            await prisma.usageRecord.create({
                data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
            });
-        } catch (error) {
+        } catch (error: any) {
            console.error("Failed to save AI reply or usage:", error);
+           const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'AI_MESSAGE_SAVE_FAILED';
+           sendSse({ type: 'warning', code, message: 'Failed to save AI message.' });
         }
     }
 

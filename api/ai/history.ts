@@ -1,13 +1,72 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import prisma from '../../server/prisma';
-import { authenticate } from '../../server/auth';
+import jwt from 'jsonwebtoken';
+
+const authenticateFromRequest = (req: VercelRequest): string | null => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'fallback_secret'
+    ) as { userId: string };
+
+    return decoded.userId;
+  } catch {
+    return null;
+  }
+};
+
+type PrismaLike = any;
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __sailguardAiPrisma: PrismaLike | undefined;
+}
+
+async function loadPrisma() {
+  try {
+    const prismaClientModule = await import('@prisma/client');
+    const PrismaClient = prismaClientModule.PrismaClient;
+
+    if (!globalThis.__sailguardAiPrisma) {
+      globalThis.__sailguardAiPrisma = new PrismaClient();
+    }
+
+    return {
+      prisma: globalThis.__sailguardAiPrisma,
+      error: null as any,
+    };
+  } catch (error: any) {
+    console.error('AI history failed to load @prisma/client:', error);
+    return {
+      prisma: null,
+      error,
+    };
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action || req.body?.action;
-  const userId = authenticate(req, res);
-  if (!userId) return;
+  const userId = authenticateFromRequest(req);
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
+    const { prisma } = await loadPrisma();
+    if (!prisma) {
+        return res.status(500).json({ error: 'Database connection failed', code: 'DATABASE_CONNECTION_FAILED' });
+    }
+
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+    } catch {
+        return res.status(500).json({ error: 'Database connection failed', code: 'DATABASE_CONNECTION_FAILED' });
+    }
+
     if (action === 'list' && req.method === 'GET') {
       const sessions = await prisma.aiChatSession.findMany({
         where: { userId },
@@ -56,6 +115,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ error: 'Action not found' });
   } catch (err: any) {
     console.error("History API Error", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, code: 'INTERNAL_ERROR' });
   }
 }
