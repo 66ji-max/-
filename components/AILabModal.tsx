@@ -40,9 +40,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [thinkingSeconds, setThinkingSeconds] = useState<number | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const thinkingIntervalRef = useRef<any>(null);
   
   const fetchHistory = async () => {
       try {
@@ -82,6 +85,23 @@ const AILabModal: React.FC<AILabModalProps> = ({
     document.addEventListener('click', handleGlobalClick);
     return () => document.removeEventListener('click', handleGlobalClick);
   }, [activeMenuId]);
+
+  const stopGeneration = () => {
+      if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+      }
+      if (thinkingIntervalRef.current) {
+          clearInterval(thinkingIntervalRef.current);
+          thinkingIntervalRef.current = null;
+      }
+      setThinkingSeconds(null);
+  };
+
+  useEffect(() => {
+      if (!isOpen) {
+          stopGeneration();
+      }
+  }, [isOpen]);
 
   const startNewChat = () => {
       setSessionId(undefined);
@@ -250,12 +270,19 @@ const AILabModal: React.FC<AILabModalProps> = ({
     setInput('');
     setIsLoading(true);
     setAttachedFile(null);
+    setThinkingSeconds(0);
+    
+    abortControllerRef.current = new AbortController();
+    
+    thinkingIntervalRef.current = setInterval(() => {
+        setThinkingSeconds(prev => prev !== null ? prev + 1 : null);
+    }, 1000);
 
     const modelMsgId = (Date.now() + 1).toString();
     const modelMsg: ChatMessage = {
       id: modelMsgId,
       role: 'model',
-      text: language === 'zh' ? '正在分析，请稍候...' : 'Analyzing, please wait...',
+      text: '', // Text will be overridden by the thinking timer in UI
       isStreaming: true,
     };
 
@@ -269,6 +296,11 @@ const AILabModal: React.FC<AILabModalProps> = ({
         (chunk) => {
              if (!hasReceivedFirstChunk) {
                hasReceivedFirstChunk = true;
+               setThinkingSeconds(null);
+               if (thinkingIntervalRef.current) {
+                   clearInterval(thinkingIntervalRef.current);
+                   thinkingIntervalRef.current = null;
+               }
                setMessages((prev) =>
                  prev.map((msg) =>
                    msg.id === modelMsgId ? { ...msg, text: chunk } : msg
@@ -293,7 +325,9 @@ const AILabModal: React.FC<AILabModalProps> = ({
             }
         },
         topic || 'AI Chat',
-        topic
+        topic,
+        undefined, // onStatus if needed later
+        abortControllerRef.current || undefined
       );
       
       await fetchHistory();
@@ -308,7 +342,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
              displayError = language === 'zh' ? 'AI 服务暂时不可用，请稍后重试' : 'AI service is temporarily unavailable. Please try again later.';
         }
 
-        if (errCode === 'AI_FIRST_TOKEN_TIMEOUT') displayError = language === 'zh' ? 'AI 首次响应较慢，请稍后重试' : 'AI first response is slow. Please try again.';
+        if (errCode === 'ABORTED_BY_USER') {
+             displayError = language === 'zh' ? '已停止生成。' : 'Generation stopped.';
+             // If we want it to not look like an error, we can just append it without [Error] prefix.
+             // But for now appending [Error] might be okay. Let's customize it.
+        }
+        else if (errCode === 'AI_FIRST_TOKEN_TIMEOUT') displayError = language === 'zh' ? 'AI 首次响应较慢，请稍后重试' : 'AI first response is slow. Please try again.';
         else if (errCode === 'AI_RESPONSE_TIMEOUT') displayError = language === 'zh' ? 'AI 响应超时，请稍后重试' : 'AI response timed out. Please try again.';
         else if (errCode === 'AI_PROVIDER_NOT_CONFIGURED') displayError = language === 'zh' ? 'AI 服务未配置，请检查 API Key' : 'AI service is not configured. Please check API key.';
         else if (errCode === 'AI_PROVIDER_ERROR') displayError = language === 'zh' ? 'AI 服务调用失败，请检查 API Key 或模型配置' : 'AI provider failed. Please check API key or model configuration.';
@@ -323,11 +362,17 @@ const AILabModal: React.FC<AILabModalProps> = ({
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === modelMsgId 
-              ? { ...msg, text: hasReceivedFirstChunk ? msg.text + `\n\n[Error] ${displayError}` : `[Error] ${displayError}` } 
+              ? { ...msg, text: hasReceivedFirstChunk ? msg.text + (errCode === 'ABORTED_BY_USER' ? `\n\n${displayError}` : `\n\n[Error] ${displayError}`) : (errCode === 'ABORTED_BY_USER' ? displayError : `[Error] ${displayError}`) } 
               : msg
           )
         );
     } finally {
+      if (thinkingIntervalRef.current) {
+          clearInterval(thinkingIntervalRef.current);
+          thinkingIntervalRef.current = null;
+      }
+      setThinkingSeconds(null);
+      
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === modelMsgId ? { ...msg, isStreaming: false } : msg
@@ -529,8 +574,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
                             <Sparkles size={12} /> {topic || 'Assistant'}
                         </div>
                     )}
-                    <div className="whitespace-pre-wrap">{msg.text}</div>
-                    {msg.isStreaming && <span className="inline-block w-1.5 h-4 ml-1 bg-purple-400 animate-pulse align-middle" />}
+                    <div className="whitespace-pre-wrap">
+                        {msg.isStreaming && msg.role === 'model' && msg.text === '' && thinkingSeconds !== null ? (
+                            language === 'zh' ? `思考中 ${thinkingSeconds} 秒...` : `Thinking ${thinkingSeconds}s...`
+                        ) : msg.text}
+                    </div>
+                    {msg.isStreaming && msg.text !== '' && <span className="inline-block w-1.5 h-4 ml-1 bg-purple-400 animate-pulse align-middle" />}
                   </div>
                 </div>
               ))}
@@ -575,17 +624,27 @@ const AILabModal: React.FC<AILabModalProps> = ({
                   placeholder={t.inputPlaceholder}
                   className="flex-1 bg-black/50 border border-zinc-700 rounded-full px-5 p-3 md:p-3.5 text-white focus:outline-none focus:border-purple-500 transition-colors"
                 />
-                <button
-                  type="submit"
-                  disabled={isLoading || (!input.trim() && !attachedFile)}
-                  className="bg-white text-black p-3 md:p-3.5 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
-                >
-                  {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
+                {isLoading ? (
+                    <button
+                        type="button"
+                        onClick={stopGeneration}
+                        className="bg-red-500 text-white p-3 md:p-3.5 rounded-full hover:bg-red-400 transition-colors shrink-0"
+                        title={language === 'zh' ? '停止生成' : 'Stop generating'}
+                    >
+                        <div className="w-5 h-5 flex items-center justify-center">
+                            <div className="w-3.5 h-3.5 bg-white rounded-sm" />
+                        </div>
+                    </button>
+                ) : (
+                    <button
+                      type="submit"
+                      disabled={(!input.trim() && !attachedFile)}
+                      className="bg-white text-black p-3 md:p-3.5 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+                      title={language === 'zh' ? '发送' : 'Send'}
+                    >
                       <Send size={20} />
-                  )}
-                </button>
+                    </button>
+                )}
               </div>
             </form>
         </div>

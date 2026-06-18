@@ -7,26 +7,15 @@ export const streamBackendChat = async (
   sessionId?: string,
   onSessionCreated?: (sessionId: string) => void,
   title?: string,
-  topic?: string
+  topic?: string,
+  onStatus?: (status: any) => void,
+  abortController?: AbortController
 ): Promise<string> => {
   try {
     let attachmentFileId = null;
     
-    const controller = new AbortController();
-    const overallTimeoutId = setTimeout(() => {
-        controller.abort();
-    }, 90000);
+    const controller = abortController || new AbortController();
     
-    let receivedAnyToken = false;
-    const firstTokenTimeoutId = setTimeout(() => {
-        if (!receivedAnyToken) {
-            controller.abort();
-            const err = new Error("AI first response is slow. Please try again.");
-            (err as any).code = 'AI_FIRST_TOKEN_TIMEOUT';
-            throw err;
-        }
-    }, 45000);
-
     if (attachedFile && token) {
         // Upload immediately before query
         const reader = new FileReader();
@@ -65,8 +54,6 @@ export const streamBackendChat = async (
     });
 
     if (!res.ok) {
-        clearTimeout(overallTimeoutId);
-        clearTimeout(firstTokenTimeoutId);
         let responseData: any = {};
         const textData = await res.text();
         try {
@@ -82,8 +69,6 @@ export const streamBackendChat = async (
 
     const reader = res.body?.getReader();
     if (!reader) {
-        clearTimeout(overallTimeoutId);
-        clearTimeout(firstTokenTimeoutId);
         throw new Error("No response body");
     }
     const decoder = new TextDecoder();
@@ -106,8 +91,6 @@ export const streamBackendChat = async (
                         const rawData = line.slice(6).trim();
                         if (!rawData) continue;
                         if (rawData === '[DONE]') {
-                            clearTimeout(overallTimeoutId);
-                            clearTimeout(firstTokenTimeoutId);
                             return fullText;
                         }
                         
@@ -121,6 +104,7 @@ export const streamBackendChat = async (
                                 continue;
                             }
                             if (parsed.type === 'status') {
+                                if (onStatus) onStatus(parsed);
                                 console.info("Backend status:", parsed);
                                 continue;
                             }
@@ -128,18 +112,13 @@ export const streamBackendChat = async (
                                 onSessionCreated(parsed.sessionId);
                             }
                             if (parsed.text) {
-                                receivedAnyToken = true;
                                 fullText += parsed.text;
                                 onChunk(parsed.text);
                             } else if (parsed.error) {
                                 if (parsed.code === 'OUT_OF_SCOPE') {
-                                    receivedAnyToken = true;
                                     fullText += parsed.error;
                                     onChunk(parsed.error);
                                 } else {
-                                    receivedAnyToken = true;
-                                    clearTimeout(overallTimeoutId);
-                                    clearTimeout(firstTokenTimeoutId);
                                     const err = new Error(parsed.error);
                                     (err as any).code = parsed.code;
                                     throw err;
@@ -149,8 +128,6 @@ export const streamBackendChat = async (
                             if (e.code) throw e;
                             console.error("Failed to parse SSE event:", rawData, e);
                             if (rawData.includes("A server error") || rawData.includes("<!DOCTYPE html")) {
-                                clearTimeout(overallTimeoutId);
-                                clearTimeout(firstTokenTimeoutId);
                                 const errObj = new Error("AI service is temporarily unavailable. Please try again later.");
                                 (errObj as any).code = "VERCEL_ERROR";
                                 throw errObj;
@@ -161,15 +138,14 @@ export const streamBackendChat = async (
             }
         }
     } finally {
-        clearTimeout(overallTimeoutId);
-        clearTimeout(firstTokenTimeoutId);
+        // cleanup if needed
     }
     
     return fullText;
   } catch (error: any) {
     if (error.name === 'AbortError') {
-        const errObj = new Error("AI response timed out. Please try again.");
-        (errObj as any).code = "AI_RESPONSE_TIMEOUT";
+        const errObj = new Error("Generation stopped.");
+        (errObj as any).code = "ABORTED_BY_USER";
         throw errObj;
     }
     if (error.code) {

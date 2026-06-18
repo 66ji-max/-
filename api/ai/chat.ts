@@ -205,9 +205,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '你是谁', 'who are you', 'help', '帮助', '怎么用', '功能'
     ];
     
-    if (safeSmallTalk.some(k => normalized.includes(k))) return false;
-    return !allowedKeywords.some(k => normalized.includes(k));
+    if (safeSmallTalk.some(k => normalized === k || normalized.startsWith(k) && normalized.length < k.length + 5)) {
+        return 'SMALLTALK';
+    }
+    return !allowedKeywords.some(k => normalized.includes(k)) ? 'OUT_OF_SCOPE' : 'OK';
   };
+  
+  const scopeResult = prompt ? isClearlyOutOfScope(prompt) : 'OK';
 
   const projectSystemPrompt = `You are SailGuard AI, an AI compliance assistant for the SailGuard AI / 鹭起南洋 website.
 You must only answer questions related to this project and its services:
@@ -361,7 +365,7 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
         }
     }
 
-    if (prompt && isClearlyOutOfScope(prompt)) {
+    if (scopeResult === 'OUT_OF_SCOPE') {
         sendSse({ type: 'warning', code: 'OUT_OF_SCOPE', message: 'Out of scope question detected. Falling back.' });
         const outOfScopeDesc = '抱歉，我只能回答与 SailGuard AI 项目、跨境电商合规、AI SaaS 功能、会员订单和相关业务有关的问题。您可以问我商标侵权、政策风险、物流优化、购物助手或平台使用问题。';
         
@@ -375,6 +379,24 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
              }
         }
         sendSse({ text: outOfScopeDesc, code: 'OUT_OF_SCOPE' });
+        finishSse();
+        return;
+    }
+    
+    if (scopeResult === 'SMALLTALK') {
+        sendSse({ type: 'status', code: 'SMALLTALK', message: 'Greeting detected. Falling back.' });
+        const greetingDesc = '你好，我是 SailGuard AI 合规助手，可以帮助您分析跨境电商合规、商标侵权、政策风险、物流优化、购物助手、会员订单和平台使用问题。';
+        
+        if (dbAvailable && prisma && currentSessionId) {
+             try {
+                await prisma.aiChatMessage.create({
+                    data: { sessionId: currentSessionId, role: 'model', content: greetingDesc }
+                });
+             } catch (err) {
+                console.error('Failed to log smalltalk bot reply', err);
+             }
+        }
+        sendSse({ text: greetingDesc, code: 'SMALLTALK' });
         finishSse();
         return;
     }
@@ -438,8 +460,18 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
     }
 
     let fullResponse = "";
+    
+    let keepAliveInterval: any;
+    let elapsedSeconds = 0;
+    
     if (llmConfig.provider === 'openai-compatible' || llmConfig.provider === 'gemini') {
       sendSse({ type: 'status', code: 'LLM_REQUEST_STARTED' });
+      
+      keepAliveInterval = setInterval(() => {
+          elapsedSeconds += 5;
+          sendSse({ type: 'status', code: 'THINKING', elapsed: elapsedSeconds });
+      }, 5000);
+      
       const modelsToTry = [llmConfig.model, ...llmConfig.fallbackModels].filter(Boolean);
       let success = false;
       let lastError: any = null;
@@ -495,6 +527,7 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
                                       if (content) {
                                           if (!firstTokenReceived) {
                                               firstTokenReceived = true;
+                                              clearInterval(keepAliveInterval);
                                               sendSse({ type: 'status', code: 'LLM_FIRST_TOKEN_RECEIVED' });
                                           }
                                           fullResponse += content;
@@ -508,16 +541,6 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
                       }
                   })();
 
-                  await Promise.race([
-                      readerPromise,
-                      new Promise((_, reject) => setTimeout(() => {
-                          if (!firstTokenReceived) {
-                              streamActive = false;
-                              reader.cancel();
-                              reject(new Error("Stream first token timeout"));
-                          }
-                      }, 20000))
-                  ]);
                   await readerPromise; // Make sure it finishes if valid
 
                   if (fullResponse) {
@@ -555,6 +578,7 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
                   if (content) {
                       if (!firstTokenReceived) {
                           firstTokenReceived = true;
+                          clearInterval(keepAliveInterval);
                           sendSse({ type: 'status', code: 'LLM_FIRST_TOKEN_RECEIVED' });
                       }
                       fullResponse += content;
@@ -571,12 +595,15 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
       }
 
       if (!success) {
+          if (keepAliveInterval) clearInterval(keepAliveInterval);
           console.error("LLM Provider Error (all fallbacks exhausted):", lastError);
           sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
           finishSse();
           return;
       }
     }
+
+    if (keepAliveInterval) clearInterval(keepAliveInterval);
 
     if (dbAvailable && prisma && fullResponse && currentSessionId) {
         try {
@@ -601,6 +628,7 @@ If the user asks “你是谁 / are you Gemini / what model are you”, answer:
 
     finishSse();
   } catch (error: any) {
+    if (typeof keepAliveInterval !== 'undefined') clearInterval(keepAliveInterval);
     console.error("Unexpected Internal Error:", error);
     sendSse({ error: "Internal Error", code: "INTERNAL_ERROR" });
     finishSse();
