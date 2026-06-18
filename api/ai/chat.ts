@@ -184,6 +184,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { prompt, systemInstruction, attachmentFileId, sessionId, title, topic } = req.body;
 
+  const isClearlyOutOfScope = (text: string) => {
+    if (!text) return false;
+    const normalized = text.toLowerCase();
+    
+    const allowedKeywords = [
+        'sailguard', '鹭起南洋', 'ai saas', 'compliance', '合规',
+        'cross-border', '跨境', 'e-commerce', '电商',
+        'trademark', '商标', 'patent', '专利', 'copyright', '版权',
+        'infringement', '侵权', 'policy', '政策', 'logistics', '物流',
+        'shopping assistant', '购物助手', 'eci', 'employee', '人才',
+        'membership', '会员', 'startup', 'pro', 'free',
+        'payment', '支付', 'order', '订单', 'report', '报告',
+        'file', '文件', 'upload', '上传', 'risk', '风险',
+        'amazon', 'shopee', 'lazada', 'tiktok', 'temu'
+    ];
+    
+    const safeSmallTalk = [
+        '你好', '您好', 'hello', 'hi', 'hey',
+        '你是谁', 'who are you', 'help', '帮助', '怎么用', '功能'
+    ];
+    
+    if (safeSmallTalk.some(k => normalized.includes(k))) return false;
+    return !allowedKeywords.some(k => normalized.includes(k));
+  };
+
+  const projectSystemPrompt = `You are SailGuard AI, an AI compliance assistant for the SailGuard AI / 鹭起南洋 website.
+You must only answer questions related to this project and its services:
+- cross-border e-commerce compliance
+- trademark, patent, copyright, brand infringement, product listing risk
+- policy monitoring and regulatory updates
+- smart logistics and e-commerce shopping assistant
+- ECI talent index / employee analysis
+- AI SaaS functions on this website
+- file analysis and compliance reports
+- membership plans, payments, orders, account usage, website support
+- company information shown on this website
+
+If the user asks an unrelated question, politely refuse and redirect them to ask about SailGuard AI services.
+Do not answer general trivia, entertainment, homework, coding unrelated to this project, personal advice, medical/legal/financial advice outside platform compliance context, or random roleplay.
+Keep answers concise, practical, and business-oriented.
+If the user asks “你是谁 / are you Gemini / what model are you”, answer:
+“I am SailGuard AI’s compliance assistant. The underlying model provider may vary by deployment, but I am configured to help with SailGuard AI project-related compliance and e-commerce questions.”`;
+
   try {
     let membership: any = null;
     let plan = 'free';
@@ -273,7 +316,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             let tempSessionId = currentSessionId;
             if (!tempSessionId) {
                 try {
-                    const generatedTitle = title || (prompt && prompt.substring(0, 30)) || 'New Chat';
+                    const generatedTitle = title && title !== 'AI Chat'
+                        ? title
+                        : prompt
+                        ? prompt.replace(/\r?\n|\r/g, " ").trim().substring(0, 30)
+                        : 'New Chat';
                     const session = await prisma.aiChatSession.create({
                         data: { userId, title: generatedTitle, topic }
                     });
@@ -312,6 +359,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } catch (error) {
             console.error("DB Save timed out:", error);
         }
+    }
+
+    if (prompt && isClearlyOutOfScope(prompt)) {
+        sendSse({ type: 'warning', code: 'OUT_OF_SCOPE', message: 'Out of scope question detected. Falling back.' });
+        const outOfScopeDesc = '抱歉，我只能回答与 SailGuard AI 项目、跨境电商合规、AI SaaS 功能、会员订单和相关业务有关的问题。您可以问我商标侵权、政策风险、物流优化、购物助手或平台使用问题。';
+        
+        if (dbAvailable && prisma && currentSessionId) {
+             try {
+                await prisma.aiChatMessage.create({
+                    data: { sessionId: currentSessionId, role: 'model', content: outOfScopeDesc }
+                });
+             } catch (err) {
+                console.error('Failed to log out of scope bot reply', err);
+             }
+        }
+        sendSse({ text: outOfScopeDesc, code: 'OUT_OF_SCOPE' });
+        finishSse();
+        return;
     }
 
     let historyMessages: any[] = [];
@@ -357,6 +422,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const oaiMessages = [];
+    oaiMessages.push({ role: 'system', content: projectSystemPrompt });
+    
     if (systemInstruction) {
       oaiMessages.push({ role: 'system', content: systemInstruction });
     }

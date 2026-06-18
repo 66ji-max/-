@@ -225,7 +225,12 @@ export const translations = {
     },
     chat: {
       welcome: '欢迎来到 AI SaaS 实验室。我是您的智能助手。关于跨境电商、智能物流或 AI SaaS，您有什么想了解的吗？',
-      inputPlaceholder: '询问关于 AI 解决方案的问题...'
+      inputPlaceholder: '询问关于 AI 解决方案的问题...',
+      renameChat: '重命名',
+      deleteChat: '删除',
+      moreOptions: '更多',
+      renameFailed: '重命名失败，请稍后重试',
+      outOfScopeReply: '抱歉，我只能回答与 SailGuard AI 项目、跨境电商合规、AI SaaS 功能、会员订单和相关业务有关的问题。您可以问我商标侵权、政策风险、物流优化、购物助手或平台使用问题。'
     }
   },
   en: {
@@ -454,7 +459,12 @@ export const translations = {
     },
     chat: {
       welcome: 'Welcome to the AI SaaS Lab. I am your intelligent assistant. What would you like to know about Cross-border E-commerce, Smart Logistics, or AI SaaS?',
-      inputPlaceholder: 'Ask about AI solutions...'
+      inputPlaceholder: 'Ask about AI solutions...',
+      renameChat: 'Rename',
+      deleteChat: 'Delete',
+      moreOptions: 'More',
+      renameFailed: 'Failed to rename chat. Please try again.',
+      outOfScopeReply: 'Sorry, I can only help with SailGuard AI project-related topics such as cross-border compliance, AI SaaS features, membership, orders, file analysis, trademark risk, policy monitoring, logistics, and shopping assistant questions.'
     }
   }
 };

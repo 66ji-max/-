@@ -99,6 +99,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ session });
     }
 
+    if (action === 'rename' && req.method === 'PATCH') {
+      const { sessionId, title } = req.body;
+      if (!sessionId) return res.status(400).json({ error: 'Session ID required', code: 'SESSION_ID_REQUIRED' });
+      if (!title || !title.trim()) return res.status(400).json({ error: 'Title required', code: 'TITLE_REQUIRED' });
+      
+      const trimmedTitle = title.trim().substring(0, 60);
+      
+      const existing = await prisma.aiChatSession.findUnique({ where: { id: sessionId } });
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: 'Session not found', code: 'SESSION_NOT_FOUND' });
+      }
+      
+      const session = await prisma.aiChatSession.update({
+        where: { id: sessionId },
+        data: { title: trimmedTitle }
+      });
+      return res.status(200).json({ session });
+    }
+
     if (action === 'delete' && req.method === 'DELETE') {
       const sessionId = req.query.sessionId as string;
       if (!sessionId) return res.status(400).json({ error: 'Session ID required' });

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon, Clock, Plus, Trash2, MessageSquare, Download } from 'lucide-react';
+import { X, Send, Cpu, Sparkles, Paperclip, File as FileIcon, Clock, Plus, Trash2, MessageSquare, Download, Pencil, MoreHorizontal, Check } from 'lucide-react';
 import { streamBackendChat } from '../services/geminiService';
 import { ChatMessage, Language } from '../types';
 import { translations } from '../translations';
@@ -37,6 +37,9 @@ const AILabModal: React.FC<AILabModalProps> = ({
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +75,14 @@ const AILabModal: React.FC<AILabModalProps> = ({
     fetchHistory();
   }, [isOpen, user?.id, language, initialGreeting]);
 
+  useEffect(() => {
+    const handleGlobalClick = () => {
+        if (activeMenuId) setActiveMenuId(null);
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [activeMenuId]);
+
   const startNewChat = () => {
       setSessionId(undefined);
       let greeting = initialGreeting || t.welcome;
@@ -99,6 +110,44 @@ const AILabModal: React.FC<AILabModalProps> = ({
               setShowHistory(false);
           }
       } catch (err) {}
+  };
+
+  const startRename = (e: React.MouseEvent, session: any) => {
+      e.stopPropagation();
+      setEditingSessionId(session.id);
+      setEditTitle(session.title);
+      setActiveMenuId(null);
+  };
+
+  const saveRename = async (id: string, e?: React.FormEvent | React.FocusEvent) => {
+      if (e) {
+          e.preventDefault();
+          if ('stopPropagation' in e) e.stopPropagation();
+      }
+      
+      const newTitle = editTitle.trim();
+      setEditingSessionId(null);
+      if (!newTitle) return;
+      
+      const originalTitle = history.find(s => s.id === id)?.title;
+      if (newTitle === originalTitle) return;
+
+      setHistory(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
+
+      try {
+          const res = await authFetch('/api/ai/history?action=rename', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: id, title: newTitle })
+          });
+          if (!res.ok) throw new Error('Rename failed');
+      } catch (err) {
+          alert(t.renameFailed || 'Failed to rename chat. Please try again.');
+          // Revert on failure
+          if (originalTitle) {
+              setHistory(prev => prev.map(s => s.id === id ? { ...s, title: originalTitle } : s));
+          }
+      }
   };
 
   const deleteSession = async (e: React.MouseEvent, id: string) => {
@@ -313,14 +362,97 @@ const AILabModal: React.FC<AILabModalProps> = ({
                 {history.map(session => (
                     <div 
                         key={session.id} 
-                        onClick={() => loadSession(session.id)}
-                        className={`p-3 border-b border-zinc-800/50 cursor-pointer flex items-center justify-between group transition-colors ${sessionId === session.id ? 'bg-zinc-800/80 border-l-2 border-l-sfc-orange' : 'hover:bg-zinc-800/50'}`}
+                        onClick={() => {
+                            if (editingSessionId !== session.id) {
+                                loadSession(session.id);
+                            }
+                        }}
+                        className={`relative p-3 border-b border-zinc-800/50 cursor-pointer flex items-center justify-between group transition-colors ${sessionId === session.id ? 'bg-zinc-800/80 border-l-2 border-l-sfc-orange' : 'hover:bg-zinc-800/50'} ${editingSessionId === session.id ? 'bg-zinc-800/80' : ''}`}
                     >
-                        <div className="flex items-center gap-2 overflow-hidden w-full">
-                            <MessageSquare size={14} className={sessionId === session.id ? 'text-sfc-orange' : 'text-gray-500'} />
-                            <span className="text-sm text-gray-300 truncate w-full pr-2 select-none">{session.title}</span>
+                        <div className="flex items-center gap-2 overflow-hidden w-full h-6">
+                            <MessageSquare size={14} className={sessionId === session.id ? 'text-sfc-orange shrink-0' : 'text-gray-500 shrink-0'} />
+                            
+                            {editingSessionId === session.id ? (
+                                <div className="flex w-full items-center">
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                saveRename(session.id, e);
+                                            } else if (e.key === 'Escape') {
+                                                e.stopPropagation();
+                                                setEditingSessionId(null);
+                                            }
+                                        }}
+                                        onBlur={(e) => saveRename(session.id, e)}
+                                        className="w-full bg-zinc-900 border border-zinc-600 rounded text-sm text-white px-1 outline-none focus:border-sfc-orange h-6"
+                                    />
+                                    <button 
+                                        className="ml-1 text-green-400 p-0.5 hover:text-green-300"
+                                        onMouseDown={(e) => { e.preventDefault(); saveRename(session.id, e); }}
+                                    >
+                                        <Check size={14} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <span className="text-sm text-gray-300 truncate w-full pr-2 select-none" title={session.title}>{session.title}</span>
+                            )}
                         </div>
-                        <Trash2 size={14} className="text-gray-600 opacity-0 group-hover:opacity-100 hover:text-red-400 cursor-pointer flex-shrink-0" onClick={(e) => deleteSession(e, session.id)} />
+                        
+                        {editingSessionId !== session.id && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 bg-gradient-to-l from-zinc-800 via-zinc-800 to-transparent pl-4 h-full top-0">
+                                <button 
+                                    onClick={(e) => startRename(e, session)} 
+                                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                                    title={t.renameChat || 'Rename'}
+                                >
+                                    <Pencil size={14} />
+                                </button>
+                                <div className="relative">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveMenuId(activeMenuId === session.id ? null : session.id);
+                                        }} 
+                                        className="p-1 text-gray-400 hover:text-white transition-colors"
+                                        title={t.moreOptions || 'More'}
+                                    >
+                                        <MoreHorizontal size={14} />
+                                    </button>
+                                    
+                                    {activeMenuId === session.id && (
+                                        <div 
+                                            className="absolute right-0 top-full mt-1 w-32 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 z-50 text-sm overflow-hidden"
+                                        >
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenuId(null);
+                                                    startRename(e, session);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-gray-300 hover:bg-zinc-700 hover:text-white flex items-center gap-2 transition-colors"
+                                            >
+                                                <Pencil size={12} /> {t.renameChat || 'Rename'}
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenuId(null);
+                                                    deleteSession(e, session.id);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-red-400 hover:bg-zinc-700 hover:text-red-300 flex items-center gap-2 transition-colors"
+                                            >
+                                                <Trash2 size={12} /> {t.deleteChat || 'Delete'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

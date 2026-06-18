@@ -132,12 +132,18 @@ export const streamBackendChat = async (
                                 fullText += parsed.text;
                                 onChunk(parsed.text);
                             } else if (parsed.error) {
-                                receivedAnyToken = true;
-                                clearTimeout(overallTimeoutId);
-                                clearTimeout(firstTokenTimeoutId);
-                                const err = new Error(parsed.error);
-                                (err as any).code = parsed.code;
-                                throw err;
+                                if (parsed.code === 'OUT_OF_SCOPE') {
+                                    receivedAnyToken = true;
+                                    fullText += parsed.error;
+                                    onChunk(parsed.error);
+                                } else {
+                                    receivedAnyToken = true;
+                                    clearTimeout(overallTimeoutId);
+                                    clearTimeout(firstTokenTimeoutId);
+                                    const err = new Error(parsed.error);
+                                    (err as any).code = parsed.code;
+                                    throw err;
+                                }
                             }
                         } catch (e: any) {
                             if (e.code) throw e;
