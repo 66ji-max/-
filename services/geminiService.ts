@@ -15,17 +15,17 @@ export const streamBackendChat = async (
     const controller = new AbortController();
     const overallTimeoutId = setTimeout(() => {
         controller.abort();
-    }, 60000);
+    }, 90000);
     
     let receivedAnyToken = false;
     const firstTokenTimeoutId = setTimeout(() => {
         if (!receivedAnyToken) {
             controller.abort();
-            const err = new Error("AI first response timed out. Please try again.");
+            const err = new Error("AI first response is slow. Please try again.");
             (err as any).code = 'AI_FIRST_TOKEN_TIMEOUT';
             throw err;
         }
-    }, 15000);
+    }, 45000);
 
     if (attachedFile && token) {
         // Upload immediately before query

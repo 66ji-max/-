@@ -168,6 +168,8 @@ const AILabModal: React.FC<AILabModalProps> = ({
     }
   };
 
+  const isSubmittingRef = useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -176,9 +178,11 @@ const AILabModal: React.FC<AILabModalProps> = ({
         return;
     }
     
+    if (isSubmittingRef.current || isLoading) return;
     const trimmedInput = input.trim();
-    if ((!trimmedInput && !attachedFile) || isLoading) return;
+    if ((!trimmedInput && !attachedFile)) return;
 
+    isSubmittingRef.current = true;
     let displayText = trimmedInput;
     if (attachedFile) {
         displayText = `[File: ${attachedFile.name}]\n${trimmedInput}`;
@@ -255,7 +259,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
              displayError = language === 'zh' ? 'AI 服务暂时不可用，请稍后重试' : 'AI service is temporarily unavailable. Please try again later.';
         }
 
-        if (errCode === 'AI_FIRST_TOKEN_TIMEOUT') displayError = language === 'zh' ? 'AI 首次响应超时，请稍后重试' : 'AI first response timed out. Please try again.';
+        if (errCode === 'AI_FIRST_TOKEN_TIMEOUT') displayError = language === 'zh' ? 'AI 首次响应较慢，请稍后重试' : 'AI first response is slow. Please try again.';
         else if (errCode === 'AI_RESPONSE_TIMEOUT') displayError = language === 'zh' ? 'AI 响应超时，请稍后重试' : 'AI response timed out. Please try again.';
         else if (errCode === 'AI_PROVIDER_NOT_CONFIGURED') displayError = language === 'zh' ? 'AI 服务未配置，请检查 API Key' : 'AI service is not configured. Please check API key.';
         else if (errCode === 'AI_PROVIDER_ERROR') displayError = language === 'zh' ? 'AI 服务调用失败，请检查 API Key 或模型配置' : 'AI provider failed. Please check API key or model configuration.';
@@ -270,7 +274,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === modelMsgId 
-              ? { ...msg, text: msg.text + `\n\n[Error] ${displayError}` } 
+              ? { ...msg, text: hasReceivedFirstChunk ? msg.text + `\n\n[Error] ${displayError}` : `[Error] ${displayError}` } 
               : msg
           )
         );
@@ -281,6 +285,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
         )
       );
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

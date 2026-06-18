@@ -161,16 +161,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  sendSse({ type: 'ack' });
+  sendSse({ type: 'status', code: 'DB_CHECKING' });
+
   const { prisma, error: prismaError } = await loadPrisma();
   
   let dbAvailable = false;
   if (prisma) {
       try {
-          await prisma.$queryRaw`SELECT 1`;
+          await Promise.race([
+              prisma.$queryRaw`SELECT 1`,
+              new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout')), 3000))
+          ]);
           dbAvailable = true;
+          sendSse({ type: 'status', code: 'DATABASE_AVAILABLE', message: 'Chat history enabled.' });
       } catch (error) {
           console.error('AI chat database unavailable, continuing without history:', error);
           dbAvailable = false;
+          sendSse({ type: 'warning', code: 'DATABASE_UNAVAILABLE_HISTORY_DISABLED', message: 'Chat history is disabled because database is unavailable.' });
       }
   }
 
@@ -261,30 +269,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     let currentSessionId = sessionId;
     if (dbAvailable && prisma) {
-        if (!currentSessionId) {
-            try {
-                const generatedTitle = title || (prompt && prompt.substring(0, 30)) || 'New Chat';
-                const session = await prisma.aiChatSession.create({
-                    data: { userId, title: generatedTitle, topic }
-                });
-                currentSessionId = session.id;
-            } catch (error: any) {
-                console.error("Failed to create session:", error);
-                const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'SESSION_SAVE_FAILED';
-                sendSse({ type: 'warning', code, message: 'Failed to create chat session.' });
+        const dbSavePromise = (async () => {
+            let tempSessionId = currentSessionId;
+            if (!tempSessionId) {
+                try {
+                    const generatedTitle = title || (prompt && prompt.substring(0, 30)) || 'New Chat';
+                    const session = await prisma.aiChatSession.create({
+                        data: { userId, title: generatedTitle, topic }
+                    });
+                    tempSessionId = session.id;
+                    sendSse({ type: 'status', code: 'SESSION_CREATED', sessionId: tempSessionId });
+                    sendSse({ sessionId: tempSessionId });
+                } catch (error: any) {
+                    console.error("Failed to create session:", error);
+                    const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'SESSION_SAVE_FAILED';
+                    sendSse({ type: 'warning', code, message: 'Failed to create chat session.' });
+                }
             }
-        }
+            
+            if (prompt && tempSessionId) {
+                try {
+                    await prisma.aiChatMessage.create({
+                        data: { sessionId: tempSessionId, role: 'user', content: prompt, attachmentFileId }
+                    });
+                } catch (error: any) {
+                    console.error("Failed to create user message log:", error);
+                    const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'USER_MESSAGE_SAVE_FAILED';
+                    sendSse({ type: 'warning', code, message: 'Failed to save user message.' });
+                }
+            }
+            return tempSessionId;
+        })();
         
-        if (prompt && currentSessionId) {
-            try {
-                await prisma.aiChatMessage.create({
-                    data: { sessionId: currentSessionId, role: 'user', content: prompt, attachmentFileId }
-                });
-            } catch (error: any) {
-                console.error("Failed to create user message log:", error);
-                const code = error?.code === 'P2021' ? 'CHAT_TABLE_MISSING' : 'USER_MESSAGE_SAVE_FAILED';
-                sendSse({ type: 'warning', code, message: 'Failed to save user message.' });
+        try {
+            const returnedSessionId = await Promise.race([
+                dbSavePromise,
+                new Promise<string | undefined>((resolve) => setTimeout(() => resolve(sessionId), 5000))
+            ]);
+            if (returnedSessionId) {
+                currentSessionId = returnedSessionId;
             }
+        } catch (error) {
+            console.error("DB Save timed out:", error);
         }
     }
 
@@ -346,62 +372,142 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let fullResponse = "";
     if (llmConfig.provider === 'openai-compatible' || llmConfig.provider === 'gemini') {
-      try {
-        const requestBody = {
-          model: llmConfig.model,
-          messages: oaiMessages,
-          stream: true,
-          temperature: 0.3
-        };
+      sendSse({ type: 'status', code: 'LLM_REQUEST_STARTED' });
+      const modelsToTry = [llmConfig.model, ...llmConfig.fallbackModels].filter(Boolean);
+      let success = false;
+      let lastError: any = null;
+      let firstTokenReceived = false;
 
-        const response = await fetch(`${llmConfig.baseUrl.replace(/\/$/, '')}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${llmConfig.apiKey}`
-          },
-          body: JSON.stringify(requestBody)
-        });
+      for (const currentModel of modelsToTry) {
+          if (success) break;
 
-        if (!response.ok) {
-           const errText = await response.text();
-           throw new Error(errText || response.statusText);
-        }
+          const requestBodyStream = {
+              model: currentModel,
+              messages: oaiMessages,
+              stream: true,
+              temperature: 0.3
+          };
 
-        if (response.body) {
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder("utf-8");
-          let buffer = "";
+          try {
+              const fetchPromise = fetch(`${llmConfig.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${llmConfig.apiKey}`
+                  },
+                  body: JSON.stringify(requestBodyStream)
+              });
 
-          while(true) {
-             const { value, done } = await reader.read();
-             if (done) break;
-             buffer += decoder.decode(value, { stream: true });
-             const lines = buffer.split('\n');
-             buffer = lines.pop() || "";
-             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                   const dataStr = line.slice(6).trim();
-                   if (dataStr === '[DONE]') continue;
-                   try {
-                     const data = JSON.parse(dataStr);
-                     const content = data.choices?.[0]?.delta?.content;
-                     if (content) {
-                       fullResponse += content;
-                       sendSse({ text: content });
-                     }
-                   } catch {
-                     // ignore malformed parse
-                   }
-                }
-             }
+              const response = await fetchPromise;
+
+              if (!response.ok) {
+                  const errText = await response.text();
+                  throw new Error(errText || response.statusText);
+              }
+
+              if (response.body) {
+                  const reader = response.body.getReader();
+                  const decoder = new TextDecoder("utf-8");
+                  let buffer = "";
+
+                  let streamActive = true;
+                  const readerPromise = (async () => {
+                      while(streamActive) {
+                          const { value, done } = await reader.read();
+                          if (done) break;
+                          buffer += decoder.decode(value, { stream: true });
+                          const lines = buffer.split('\n');
+                          buffer = lines.pop() || "";
+                          for (const line of lines) {
+                              if (line.startsWith('data: ')) {
+                                  const dataStr = line.slice(6).trim();
+                                  if (dataStr === '[DONE]') continue;
+                                  try {
+                                      const data = JSON.parse(dataStr);
+                                      const content = data.choices?.[0]?.delta?.content;
+                                      if (content) {
+                                          if (!firstTokenReceived) {
+                                              firstTokenReceived = true;
+                                              sendSse({ type: 'status', code: 'LLM_FIRST_TOKEN_RECEIVED' });
+                                          }
+                                          fullResponse += content;
+                                          sendSse({ text: content });
+                                      }
+                                  } catch {
+                                      // ignore malformed parse
+                                  }
+                              }
+                          }
+                      }
+                  })();
+
+                  await Promise.race([
+                      readerPromise,
+                      new Promise((_, reject) => setTimeout(() => {
+                          if (!firstTokenReceived) {
+                              streamActive = false;
+                              reader.cancel();
+                              reject(new Error("Stream first token timeout"));
+                          }
+                      }, 20000))
+                  ]);
+                  await readerPromise; // Make sure it finishes if valid
+
+                  if (fullResponse) {
+                      success = true;
+                  } else {
+                      throw new Error("Empty response");
+                  }
+              }
+          } catch (err: any) {
+              console.warn(`Stream failed for ${currentModel}, falling back to non-stream...`, err.message);
+              try {
+                  const requestBodyNonStream = {
+                      model: currentModel,
+                      messages: oaiMessages,
+                      stream: false,
+                      temperature: 0.3
+                  };
+
+                  const response = await fetch(`${llmConfig.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${llmConfig.apiKey}`
+                      },
+                      body: JSON.stringify(requestBodyNonStream)
+                  });
+
+                  if (!response.ok) {
+                      const errText = await response.text();
+                      throw new Error(errText || response.statusText);
+                  }
+
+                  const data = await response.json();
+                  const content = data.choices?.[0]?.message?.content;
+                  if (content) {
+                      if (!firstTokenReceived) {
+                          firstTokenReceived = true;
+                          sendSse({ type: 'status', code: 'LLM_FIRST_TOKEN_RECEIVED' });
+                      }
+                      fullResponse += content;
+                      sendSse({ text: content });
+                      success = true;
+                  } else {
+                      throw new Error("Empty non-stream response");
+                  }
+              } catch (e2: any) {
+                  console.warn(`Non-stream failed for ${currentModel}`, e2.message);
+                  lastError = e2;
+              }
           }
-        }
-      } catch (err: any) {
-        console.error("LLM Provider Error:", err);
-        sendSse({ error: err.message || "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
-        finishSse();
-        return;
+      }
+
+      if (!success) {
+          console.error("LLM Provider Error (all fallbacks exhausted):", lastError);
+          sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
+          finishSse();
+          return;
       }
     }
 
