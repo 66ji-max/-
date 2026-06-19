@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FullLogo } from './FullLogo';
 import { Language } from '../types';
 import { FileText, Shield, TrendingUp, Truck, Globe, Calculator, Scale, AlertCircle, CheckCircle, Navigation, X, ArrowRight, Calendar, Tag, Upload, Check, Activity, Database, Server, Lock, Users, Briefcase, User, Mail, Phone as PhoneIcon, Paperclip } from 'lucide-react';
 
@@ -859,11 +858,6 @@ const GenericPage: React.FC<GenericPageProps> = ({ title, language, type }) => {
 
       {/* Content Layer (has animation to keep the fade effect on content but not background) */}
       <div className="relative z-10 w-full flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
-          {/* Branding Header */}
-          <div className="mb-20 transform scale-75 md:scale-100 origin-top">
-            <FullLogo language={language} />
-          </div>
-
           {/* Page Title */}
           <div className="relative mb-16 text-center">
             <h2 className="text-4xl md:text-5xl font-light text-white tracking-widest relative z-10">{title}</h2>

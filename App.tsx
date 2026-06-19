@@ -24,14 +24,12 @@ function AppContent() {
   }, [currentPage]);
 
   const getPageTitle = (page: Page) => {
-      // Map page key to translation title
-      const t = translations[language].nav;
       switch(page) {
-          case 'ecommerce': return t.ecommerce;
-          case 'news': return t.news;
-          case 'governance': return t.governance;
-          case 'about': return t.about;
-          case 'join': return t.join;
+          case 'ecommerce': return language === 'zh' ? '跨境电商解决方案' : 'Cross-border E-commerce Solutions';
+          case 'news': return language === 'zh' ? '资讯' : 'News';
+          case 'governance': return language === 'zh' ? '公司治理' : 'Governance';
+          case 'about': return language === 'zh' ? '关于我们' : 'About Us';
+          case 'join': return language === 'zh' ? '加入我们' : 'Join Us';
           default: return '';
       }
   };
