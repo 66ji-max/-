@@ -131,3 +131,54 @@ model SupportMessage {
   isRead         Boolean             @default(false)
   createdAt      DateTime            @default(now())
 }
+
+model ComplianceSource {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   @default("official") // official | news | industry | manual
+  country     String   @default("Malaysia")
+  url         String
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles    ComplianceArticle[]
+}
+
+model ComplianceArticle {
+  id            String   @id @default(uuid())
+  sourceId      String?
+  source        ComplianceSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  title         String
+  summary       String?  @db.Text
+  content       String?  @db.Text
+  url           String
+  urlHash       String   @unique
+  country       String   @default("Malaysia")
+  category      String?  // policy | customs | trademark | platform | tax | logistics | ecommerce | company
+  language      String?  // zh | en | ms
+  publishedAt   DateTime?
+  crawledAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  status        String   @default("draft") // draft | reviewed | published | rejected
+  relevance     Int?     // 0-100
+  tags          String[] @default([])
+
+  @@index([country])
+  @@index([category])
+  @@index([publishedAt])
+  @@index([status])
+}
+
+model ComplianceCrawlRun {
+  id          String   @id @default(uuid())
+  sourceName  String
+  status      String   // success | partial | failed
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  foundCount   Int      @default(0)
+  savedCount   Int      @default(0)
+  errorMessage String?  @db.Text
+}

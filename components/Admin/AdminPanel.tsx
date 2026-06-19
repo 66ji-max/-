@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../translations';
-import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle, Download } from 'lucide-react';
+import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle, Download, BookOpen } from 'lucide-react';
 import { authFetch } from '../../utils/apiClient';
 import { SupportTab } from './SupportTab';
+import { ComplianceTab } from './ComplianceTab';
 
 export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: string }> = ({ onNavigate, language }) => {
   const { user, token } = useAuth();
@@ -11,7 +12,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
   const tupg = translations[language as keyof typeof translations].upgrade;
   const tsup = translations[language as keyof typeof translations].support;
   
-  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'support'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'support' | 'compliance'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -456,14 +457,21 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
           >
               {tsup?.supportMessages || 'Support'}
           </button>
+          <button 
+              onClick={() => setActiveTab('compliance')}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'compliance' ? 'bg-sfc-orange text-white' : 'text-gray-400 hover:text-white bg-white/5'}`}
+          >
+              <BookOpen size={16} />
+              {language === 'zh' ? '合规资料库' : 'Compliance Library'}
+          </button>
       </div>
 
       {error && <div className="p-4 mb-6 bg-red-500/20 border border-red-500 text-red-100 rounded-lg">{error}</div>}
 
-      {loading && activeTab !== 'support' ? (
+      {loading && activeTab !== 'support' && activeTab !== 'compliance' ? (
         <div className="py-20 text-center text-white">Loading...</div>
       ) : (
-        activeTab === 'users' ? renderUsersTab() : activeTab === 'orders' ? renderOrdersTab() : <SupportTab language={language} userRole={user?.role || 'user'} />
+        activeTab === 'users' ? renderUsersTab() : activeTab === 'orders' ? renderOrdersTab() : activeTab === 'compliance' ? <ComplianceTab language={language} /> : <SupportTab language={language} userRole={user?.role || 'user'} />
       )}
     </div>
   );

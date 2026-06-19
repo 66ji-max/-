@@ -185,20 +185,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { prompt, systemInstruction, attachmentFileId, sessionId, title, topic } = req.body;
 
   const isClearlyOutOfScope = (text: string) => {
-    if (!text) return false;
+    if (!text) return 'OK';
     const normalized = text.toLowerCase();
-    
-    const allowedKeywords = [
-        'sailguard', '鹭起南洋', 'ai saas', 'compliance', '合规',
-        'cross-border', '跨境', 'e-commerce', '电商',
-        'trademark', '商标', 'patent', '专利', 'copyright', '版权',
-        'infringement', '侵权', 'policy', '政策', 'logistics', '物流',
-        'shopping assistant', '购物助手', 'eci', 'employee', '人才',
-        'membership', '会员', 'startup', 'pro', 'free',
-        'payment', '支付', 'order', '订单', 'report', '报告',
-        'file', '文件', 'upload', '上传', 'risk', '风险',
-        'amazon', 'shopee', 'lazada', 'tiktok', 'temu', '亚马逊'
-    ];
     
     // Quick exit topics, we can intercept them without calling LLM
     const safeSmallTalk = [
@@ -219,7 +207,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return 'SMALLTALK';
     }
 
-    return !allowedKeywords.some(k => normalized.includes(k)) ? 'OUT_OF_SCOPE' : 'OK';
+    const clearlyBlocked = [
+        '写诗', 'poem', '情书', 'love letter', '笑话', 'joke', '八卦', 'gossip',
+        '角色扮演', 'roleplay', '数学题', 'math', '作业', 'homework',
+        '编程题', 'coding', '代码', '医疗建议', 'medical advice', '看病',
+        '投资建议', 'investment advice', '炒股', '股票', '心理咨询', 'therapy'
+    ];
+    
+    const clearlyAllowed = [
+        'sailguard', '鹭起南洋', 'ai saas', 'compliance', '合规',
+        'cross-border', '跨境', 'e-commerce', '电商',
+        'trademark', '商标', 'patent', '专利', 'copyright', '版权',
+        'infringement', '侵权', 'policy', '政策', 'logistics', '物流',
+        'shopping assistant', '购物助手', 'eci', 'employee', '人才',
+        'membership', '会员', 'startup', 'pro', 'free',
+        'payment', '支付', 'order', '订单', 'report', '报告',
+        'file', '文件', 'upload', '上传', 'risk', '风险',
+        'amazon', 'shopee', 'lazada', 'tiktok', 'temu', '亚马逊'
+    ];
+
+    if (clearlyBlocked.some(k => normalized.includes(k))) {
+        return 'OUT_OF_SCOPE';
+    }
+
+    if (clearlyAllowed.some(k => normalized.includes(k))) {
+        return 'OK'; // clearlyAllowed
+    }
+
+    // ambiguous: Let AI judge, but keep scope restricted via system prompt
+    return 'OK';
   };
   
   const scopeResult = prompt ? isClearlyOutOfScope(prompt) : 'OK';
@@ -423,6 +439,8 @@ ECI 分析结果：
 
   const projectSystemPrompt = getGlobalScopeInstruction() + "\n\nUse the following output structure for this session:\n" + getTopicOutputInstruction(topic);
 
+  let keepAliveInterval: any;
+
   try {
     let membership: any = null;
     let plan = 'free';
@@ -557,9 +575,13 @@ ECI 分析结果：
         }
     }
 
+    const isEnglish = !/[\u4e00-\u9fa5]/.test(prompt || '');
+
     if (scopeResult === 'OUT_OF_SCOPE') {
         sendSse({ type: 'warning', code: 'OUT_OF_SCOPE', message: 'Out of scope question detected. Falling back.' });
-        const outOfScopeDesc = '抱歉，我只能回答与 SailGuard AI 项目、跨境电商合规、AI SaaS 功能、会员订单和相关业务有关的问题。您可以问我商标侵权、政策风险、物流优化、购物助手或平台使用问题。';
+        const outOfScopeDesc = isEnglish ? 
+            'Sorry, I can only help with SailGuard AI project-related topics such as cross-border compliance, AI SaaS features, membership, orders, file analysis, trademark risk, policy monitoring, logistics, ECI analysis, and shopping assistant questions.' :
+            '抱歉，我只能回答与 SailGuard AI 项目、跨境电商合规、AI SaaS 功能、会员订单和相关业务有关的问题。您可以问我商标侵权、政策风险、物流优化、购物助手、ECI 分析或平台使用问题。';
         
         if (dbAvailable && prisma && currentSessionId) {
              try {
@@ -577,7 +599,9 @@ ECI 分析结果：
     
     if (scopeResult === 'SMALLTALK') {
         sendSse({ type: 'status', code: 'SMALLTALK', message: 'Greeting detected. Falling back.' });
-        const greetingDesc = '你好，我是 SailGuard AI 合规助手，可以帮助您分析跨境电商合规、商标侵权、政策风险、物流优化、购物助手、会员订单和平台使用问题。';
+        const greetingDesc = isEnglish ?
+            'Hello, I am the SailGuard AI compliance assistant. I can help with cross-border compliance, trademark risk, policy monitoring, logistics, shopping assistant, membership, orders, and platform usage.' :
+            '你好，我是 SailGuard AI 合规助手，可以帮助您分析跨境电商合规、商标侵权、政策风险、物流优化、购物助手、会员订单和平台使用问题。';
         
         if (dbAvailable && prisma && currentSessionId) {
              try {
@@ -595,7 +619,9 @@ ECI 分析结果：
 
     if (scopeResult === 'IDENTITY') {
         sendSse({ type: 'status', code: 'IDENTITY', message: 'Identity question detected. Falling back.' });
-        const identityDesc = '我是 SailGuard AI 的合规助手，底层模型供应商可能会根据部署配置变化。我的主要任务是帮助您处理跨境电商合规、商标/专利风险、政策监测、物流优化、购物助手、ECI 分析、会员订单和平台使用相关问题。';
+        const identityDesc = isEnglish ?
+            'I am SailGuard AI\'s compliance assistant. The underlying model provider may vary by deployment. My role is to help with cross-border compliance, trademark and patent risk, policy monitoring, logistics optimization, shopping assistant tasks, ECI analysis, membership, orders, and platform usage.' :
+            '我是 SailGuard AI 的合规助手，底层模型供应商可能会根据部署配置变化。我的主要任务是帮助您处理跨境电商合规、商标/专利风险、政策监测、物流优化、购物助手、ECI 分析、会员订单和平台使用相关问题。';
         
         if (dbAvailable && prisma && currentSessionId) {
              try {
@@ -653,8 +679,46 @@ ECI 分析结果：
         sendSse({ sessionId: currentSessionId });
     }
 
+    let localDatabaseContext = '';
+    const shouldFetchContext = prompt && ['policy', '合规', '政策', 'malaysia', '马来西亚', '法规', '平台规则', 'compliance'].some(k => prompt.toLowerCase().includes(k));
+    const isComplianceTopic = topic && ['Policy Radar', '政策雷达', 'Trademark Radar', '商标雷达', 'Cross-border compliance', '跨境合规', 'Smart Logistics', '智能物流'].includes(topic);
+
+    if (shouldFetchContext && isComplianceTopic && dbAvailable && prisma) {
+        try {
+            const articles = await prisma.complianceArticle.findMany({
+                where: {
+                    status: 'published',
+                },
+                orderBy: [
+                    { publishedAt: 'desc' },
+                    { updatedAt: 'desc' }
+                ],
+                take: 5
+            });
+            // We do a basic JS filter for keywords because OR Prisma query is more complex and token-heavy if we don't exactly match
+            const pLower = prompt.toLowerCase();
+            const relevantArticles = articles.filter(a => 
+                (a.title?.toLowerCase() || '').includes(pLower) ||
+                (a.summary?.toLowerCase() || '').includes(pLower) ||
+                (a.tags && a.tags.some(t => pLower.includes(t.toLowerCase()))) ||
+                true // Since it's a seed DB, just returning latest 5 published is okay for now if we can't do full text search
+            ).slice(0, 3);
+
+            if (relevantArticles.length > 0) {
+                localDatabaseContext = `\n\nLocal Malaysia compliance database context:\n` + relevantArticles.map((a, i) => 
+`[${i+1}] Title: ${a.title}
+Source: ${a.source?.name || 'Local Database'}
+Date: ${a.publishedAt ? new Date(a.publishedAt).toLocaleDateString() : 'Unknown'}
+Summary: ${a.summary || 'No summary available.'}
+URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevant. If the context is insufficient, say so and advise checking official sources.`;
+            }
+        } catch(err) {
+            console.error('Failed to fetch local database context', err);
+        }
+    }
+
     const oaiMessages = [];
-    oaiMessages.push({ role: 'system', content: projectSystemPrompt });
+    oaiMessages.push({ role: 'system', content: projectSystemPrompt + localDatabaseContext });
     
     if (systemInstruction) {
       oaiMessages.push({ role: 'system', content: systemInstruction });
@@ -671,7 +735,6 @@ ECI 分析结果：
 
     let fullResponse = "";
     
-    let keepAliveInterval: any;
     let elapsedSeconds = 0;
     
     if (llmConfig.provider === 'openai-compatible' || llmConfig.provider === 'gemini') {

@@ -79,5 +79,18 @@ Check your configuration status by visiting `/api/auth?action=health`.
 - `JWT_SECRET`
 - `BLOB_READ_WRITE_TOKEN`
 
+## Compliance Database & Crawler
+
+Run the crawler script manually or via GitHub Actions (e.g. `npm run crawl:compliance`). 
+**Note**: Please manually execute `npx prisma db push` on your Neon database to apply the new schema changes for `ComplianceSource` and `ComplianceArticle`.
+
+**Crawler Guidelines**:
+- 优先使用官方 RSS/API、公开公告、授权来源；
+- 遵守 robots.txt 和网站条款；
+- 不抓取需要登录、付费、禁止转载的内容；
+- 数据库保存标题、摘要、URL、发布时间、来源，不大规模复制版权全文；
+- 对重要政策建议人工审核后再发布；
+- AI 输出仅作业务参考，不构成正式法律意见。
+
 ## License
 MIT License

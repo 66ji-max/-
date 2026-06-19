@@ -77,6 +77,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ membership: updatedMembership });
     }
 
+    if (action === 'compliance_articles' && req.method === 'GET') {
+      const articles = await prisma.complianceArticle.findMany({
+        orderBy: { crawledAt: 'desc' }
+      });
+      return res.status(200).json({ articles });
+    }
+
+    if (action === 'update_compliance_article' && req.method === 'POST') {
+      const { id, status } = req.body;
+      const article = await prisma.complianceArticle.update({
+        where: { id },
+        data: { status }
+      });
+      return res.status(200).json({ success: true, article });
+    }
+
+    if (action === 'create_compliance_article' && req.method === 'POST') {
+      const { title, url, summary, content, category, language } = req.body;
+      const urlHash = Buffer.from(url).toString('base64');
+      const article = await prisma.complianceArticle.create({
+        data: {
+          title, url, urlHash, summary, content, category, language,
+          status: 'published',
+          publishedAt: new Date()
+        }
+      });
+      return res.status(200).json({ success: true, article });
+    }
+
     return res.status(404).json({ error: 'Admin action not found or method not allowed' });
   } catch (err: any) {
     console.error('Admin API error:', err);
