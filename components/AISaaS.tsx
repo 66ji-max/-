@@ -107,7 +107,6 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               document.getElementById('radar-section')?.scrollIntoView({ behavior: 'smooth' });
               break;
           case 'eci':
-              if (!checkPermission('pro')) return;
               onNavigate('ingredient-check');
               break;
           case 'logistics':
