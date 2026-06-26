@@ -381,11 +381,20 @@ const AILabModal: React.FC<AILabModalProps> = ({
       }
       setThinkingSeconds(null);
       
-      setMessages((prev) =>
-        prev.map((msg) =>
+      setMessages((prev) => {
+        let finalMessages = prev.map((msg) =>
           msg.id === modelMsgId ? { ...msg, isStreaming: false } : msg
-        )
-      );
+        );
+        
+        const thisMsg = finalMessages.find(m => m.id === modelMsgId);
+        if (thisMsg && !thisMsg.text && !hasReceivedFirstChunk) {
+             const displayError = language === 'zh' ? '未收到 AI 回复，请稍后重试。' : 'No AI response was received. Please try again later.';
+             finalMessages = finalMessages.map((msg) =>
+                 msg.id === modelMsgId ? { ...msg, text: displayError } : msg
+             );
+        }
+        return finalMessages;
+      });
       setIsLoading(false);
       isSubmittingRef.current = false;
     }

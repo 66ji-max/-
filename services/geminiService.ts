@@ -101,6 +101,19 @@ export const streamBackendChat = async (
                             }
                             if (parsed.type === 'warning') {
                                 console.warn("Backend warning:", parsed);
+                                const warningAsTextCodes = [
+                                  'PDF_PARSE_EMPTY',
+                                  'PDF_PARSE_FAILED_WITH_GUIDANCE',
+                                  'PDF_TOO_LARGE',
+                                  'PROVIDER_PDF_UNSUPPORTED',
+                                  'UNSUPPORTED_FILE_ANALYSIS_TYPE',
+                                  'VISION_MODEL_UNSUPPORTED',
+                                  'PDF_DIRECT_PROVIDER_FAILED'
+                                ];
+                                if (warningAsTextCodes.includes(parsed.code) && parsed.message) {
+                                  fullText += parsed.message;
+                                  onChunk(parsed.message);
+                                }
                                 continue;
                             }
                             if (parsed.type === 'status') {

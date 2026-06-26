@@ -641,6 +641,11 @@ ECI 分析结果：
                          console.log('Provider PDF analysis failed. Falling back to pdf-parse...');
                          const pdfParseModule = await import('pdf-parse');
                          const pdfParse = (pdfParseModule as any).default || (pdfParseModule as any).pdfParse || pdfParseModule;
+                         
+                         if (typeof pdfParse !== 'function') {
+                           throw new Error('pdf-parse did not export a callable parser');
+                         }
+                         
                          const data = await pdfParse(Buffer.from(arrayBuffer));
                          const parsedText = data.text || '';
                          
