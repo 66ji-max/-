@@ -471,18 +471,70 @@ ECI 分析结果：
       };
     }
     
-    if (attachmentFileId && !dbAvailable) {
-      sendSse({ error: "File analysis requires database connection. Please try again later.", code: "DATABASE_REQUIRED_FOR_FILE" });
-      finishSse();
-      return;
+    let uploadedFile = null;
+    let formattedUserContent: any = prompt || '';
+    let dbUserMessageContent = prompt || '';
+
+    if (attachmentFileId) {
+      if (!dbAvailable) {
+        sendSse({ error: "File analysis requires database connection. Please try again later.", code: "DATABASE_REQUIRED_FOR_FILE" });
+        finishSse();
+        return;
+      }
+      if (!limits.allowAttachment) {
+        sendSse({ error: "File analysis requires Startup or Pro plan", code: "ATTACHMENT_REQUIRES_STARTUP" });
+        finishSse();
+        return;
+      }
+
+      try {
+        uploadedFile = await prisma.uploadedFile.findUnique({
+          where: { id: attachmentFileId }
+        });
+      } catch (err) {
+        console.error("Failed to query attachment:", err);
+      }
+
+      if (!uploadedFile || uploadedFile.userId !== userId) {
+        sendSse({ error: "Attachment not found or unauthorized", code: "ATTACHMENT_NOT_FOUND" });
+        finishSse();
+        return;
+      }
+
+      dbUserMessageContent = `[File: ${uploadedFile.originalName}]\n${prompt || ''}`;
+
+      const mimeType = uploadedFile.mimeType.toLowerCase();
+      
+      if (['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(mimeType)) {
+        formattedUserContent = [
+          {
+            type: 'text',
+            text: `${prompt || 'Please analyze this image for cross-border e-commerce compliance risk.'}\n\nAttachment:\n- File name: ${uploadedFile.originalName}\n- MIME type: ${uploadedFile.mimeType}\n- Size: ${uploadedFile.size}`
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: uploadedFile.blobUrl
+            }
+          }
+        ];
+      } else if (['text/plain', 'text/csv', 'application/json', 'text/markdown'].includes(mimeType)) {
+        try {
+          const fileRes = await fetch(uploadedFile.blobUrl);
+          if (fileRes.ok) {
+             const text = await fileRes.text();
+             const clippedText = text.slice(0, 12000);
+             const truncatedMsg = text.length > 12000 ? "\n\n(The file content was truncated for token control.)" : "";
+             formattedUserContent = `${prompt || 'Please analyze the uploaded file.'}\n\nUploaded file:\n- File name: ${uploadedFile.originalName}\n- MIME type: ${uploadedFile.mimeType}\n\nFile content:\n${clippedText}${truncatedMsg}`;
+          }
+        } catch (err) {
+          console.error("Failed to fetch text blob:", err);
+        }
+      } else if (['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(mimeType)) {
+         formattedUserContent = 'UNSUPPORTED_DOCUMENT';
+      }
     }
 
-    if (attachmentFileId && !limits.allowAttachment) {
-      sendSse({ error: "File analysis requires Startup or Pro plan", code: "ATTACHMENT_REQUIRES_STARTUP" });
-      finishSse();
-      return;
-    }
-    
     const isEci = topic === 'ECI' || (systemInstruction && systemInstruction.includes('Employee Striver Index')) || (systemInstruction && systemInstruction.includes('ECI'));
     if (isEci && !dbAvailable) {
       sendSse({ error: "Unable to verify membership. Please try again later.", code: "MEMBERSHIP_CHECK_UNAVAILABLE" });
@@ -548,10 +600,10 @@ ECI 分析结果：
                 }
             }
             
-            if (prompt && tempSessionId) {
+            if (dbUserMessageContent && tempSessionId) {
                 try {
                     await prisma.aiChatMessage.create({
-                        data: { sessionId: tempSessionId, role: 'user', content: prompt, attachmentFileId }
+                        data: { sessionId: tempSessionId, role: 'user', content: dbUserMessageContent, attachmentFileId }
                     });
                 } catch (error: any) {
                     console.error("Failed to create user message log:", error);
@@ -576,6 +628,25 @@ ECI 分析结果：
     }
 
     const isEnglish = !/[\u4e00-\u9fa5]/.test(prompt || '');
+
+    if (formattedUserContent === 'UNSUPPORTED_DOCUMENT') {
+         sendSse({ type: 'warning', code: 'UNSUPPORTED_FILE_ANALYSIS_TYPE', message: 'Document parsing not supported' });
+         const unsupportedMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+            "I received the file, but this version does not yet support direct PDF/Word/Excel parsing. Please upload an image or TXT/CSV file, or paste the key text into the chat for compliance analysis." :
+            "我已收到文件，但当前版本暂不支持直接解析 PDF/Word/Excel 内容。请先上传图片或 TXT/CSV 文本文件，或复制关键文本到对话框中，我可以继续进行合规分析。";
+         if (dbAvailable && prisma && currentSessionId) {
+             try {
+                 await prisma.aiChatMessage.create({
+                     data: { sessionId: currentSessionId, role: 'model', content: unsupportedMsg }
+                 });
+             } catch (err) {
+                 console.error('Failed to log unsupported file bot reply', err);
+             }
+         }
+         sendSse({ text: unsupportedMsg, code: 'UNSUPPORTED_FILE_ANALYSIS_TYPE' });
+         finishSse();
+         return;
+    }
 
     if (scopeResult === 'OUT_OF_SCOPE') {
         sendSse({ type: 'warning', code: 'OUT_OF_SCOPE', message: 'Out of scope question detected. Falling back.' });
@@ -725,12 +796,18 @@ URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevan
     }
 
     if (historyMessages.length > 0) {
-        for (const msg of historyMessages) {
+        for (let i = 0; i < historyMessages.length; i++) {
+           const msg = historyMessages[i];
            const role = msg.role === "model" ? "assistant" : msg.role;
-           oaiMessages.push({ role, content: msg.content });
+           let content = msg.content;
+           // Replace the content of the latest message with formattedUserContent if it corresponds to the uploaded file
+           if (i === historyMessages.length - 1 && role === 'user' && attachmentFileId) {
+               content = formattedUserContent;
+           }
+           oaiMessages.push({ role, content });
         }
-    } else if (prompt) {
-        oaiMessages.push({ role: 'user', content: prompt });
+    } else if (formattedUserContent) {
+        oaiMessages.push({ role: 'user', content: formattedUserContent });
     }
 
     let fullResponse = "";
@@ -870,7 +947,12 @@ URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevan
       if (!success) {
           if (keepAliveInterval) clearInterval(keepAliveInterval);
           console.error("LLM Provider Error (all fallbacks exhausted):", lastError);
-          sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
+          const errStr = String(lastError?.message || '').toLowerCase();
+          if (errStr.includes('image') || errStr.includes('vision') || errStr.includes('multimodal')) {
+              sendSse({ error: "The current AI model does not support image vision analysis.", code: "VISION_MODEL_UNSUPPORTED" });
+          } else {
+              sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
+          }
           finishSse();
           return;
       }
