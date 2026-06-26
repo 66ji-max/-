@@ -8,7 +8,7 @@ function authenticateFromRequest(req: VercelRequest): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { userId: string };
     return decoded.userId;
   } catch {
     return null;

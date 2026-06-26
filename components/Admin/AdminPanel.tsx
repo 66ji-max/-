@@ -25,17 +25,38 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', username: '' });
 
+  const [healthChecked, setHealthChecked] = useState(false);
+
   useEffect(() => {
     if (user && user.role !== 'admin') {
       onNavigate('dashboard');
       return;
     }
+    
+    const checkHealth = async () => {
+      try {
+        const res = await authFetch('/api/admin?action=health');
+        const data = await res.json();
+        if (data.code === 'ADMIN_REQUIRED') {
+          setError(language === 'zh' ? '当前账号没有管理员权限，请重新登录管理员账号。' : 'This account does not have administrator permission.');
+        }
+      } catch (err) {
+        console.error('Health check failed', err);
+      } finally {
+        setHealthChecked(true);
+      }
+    };
+    checkHealth();
+  }, [user]);
+
+  useEffect(() => {
+    if (!healthChecked) return;
     if (activeTab === 'users') {
         fetchUsers();
     } else if (activeTab === 'orders') {
         fetchOrders();
     }
-  }, [user, activeTab]);
+  }, [healthChecked, activeTab]);
 
   const fetchUsers = async () => {
     setLoading(true);

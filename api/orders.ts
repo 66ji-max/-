@@ -1,18 +1,54 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { put } from '@vercel/blob';
-import prisma from '../server/prisma';
-import { authenticate } from '../server/auth';
+import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
+function authenticateFromRequest(req: VercelRequest): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { userId: string };
+    return decoded.userId;
+  } catch {
+    return null;
+  }
+}
+
+async function loadPrisma() {
+  const globalAny = globalThis as any;
+  if (globalAny.__sailguardOrdersPrisma) return globalAny.__sailguardOrdersPrisma;
+  
+  try {
+    const prismaClientModule = await import('@prisma/client');
+    const PrismaClient = prismaClientModule.PrismaClient;
+    globalAny.__sailguardOrdersPrisma = new PrismaClient();
+    return globalAny.__sailguardOrdersPrisma;
+  } catch (err) {
+    throw new Error('PRISMA_CLIENT_LOAD_FAILED');
+  }
+}
+
+async function loadBlob() {
+  try {
+    const blobModule = await import('@vercel/blob');
+    return blobModule;
+  } catch (err) {
+    throw new Error('BLOB_LOAD_FAILED');
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const userId = authenticate(req, res);
-  if (!userId) return;
+  const userId = authenticateFromRequest(req);
+  if (!userId) {
+    return res.status(401).json({ code: 'UNAUTHORIZED', error: 'Unauthorized' });
+  }
 
   const action = req.query.action || req.body?.action;
 
   try {
+    const prisma = await loadPrisma();
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -107,7 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (proofImageBase64) {
           const fileBuffer = Buffer.from(proofImageBase64, 'base64');
-          const blob = await put(`proofs/${order.id}_${Date.now()}_${proofImageFilename}`, fileBuffer, { access: 'public', contentType: proofImageContentType || 'image/jpeg' });
+          const blobModule = await loadBlob();
+          const blob = await blobModule.put(`proofs/${order.id}_${Date.now()}_${proofImageFilename}`, fileBuffer, { access: 'public', contentType: proofImageContentType || 'image/jpeg' });
           proofUrl = blob.url;
           proofPathname = blob.pathname;
       }
@@ -128,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'list' && req.method === 'GET') {
       if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.status(403).json({ code: 'ADMIN_REQUIRED', error: 'Forbidden' });
       }
 
       const status = req.query.status as string;
@@ -148,7 +185,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'approve' && req.method === 'POST') {
       if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.status(403).json({ code: 'ADMIN_REQUIRED', error: 'Forbidden' });
       }
 
       const { referenceCode } = req.body;
@@ -192,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (action === 'reject' && req.method === 'POST') {
       if (user.role !== 'admin') {
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.status(403).json({ code: 'ADMIN_REQUIRED', error: 'Forbidden' });
       }
 
       const { referenceCode } = req.body;

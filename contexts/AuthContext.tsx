@@ -68,7 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     refreshUser();
 
-    const handle401 = () => {
+    const handle401 = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.warn('Received auth_401 event, logging out:', { url: customEvent.detail?.url, code: customEvent.detail?.code });
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
       setToken(null);

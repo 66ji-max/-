@@ -20,7 +20,7 @@ async function authenticateAdminFromRequest(req: VercelRequest): Promise<string 
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as { userId: string };
     const prisma = await loadPrisma();
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user || user.role !== 'admin') return null;
