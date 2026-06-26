@@ -541,7 +541,9 @@ ECI 分析结果：
     
     let uploadedFile = null;
     let formattedUserContent: any = prompt || '';
+    let isPdfTextExtracted = false;
     let dbUserMessageContent = prompt || '';
+    let currentSessionId = sessionId;
 
     if (attachmentFileId) {
       if (!prisma) {
@@ -580,8 +582,6 @@ ECI 分析结果：
       dbUserMessageContent = `[File: ${uploadedFile.originalName}]\n${prompt || ''}`;
 
       const mimeType = uploadedFile.mimeType.toLowerCase();
-      
-      let overrideAiReplyMsg = '';
 
       if (['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(mimeType)) {
         formattedUserContent = [
@@ -618,57 +618,92 @@ ECI 分析结果：
                  const arrayBuffer = await fileRes.arrayBuffer();
                  if (arrayBuffer.byteLength > 8 * 1024 * 1024) {
                      sendSse({ type: 'warning', code: 'PDF_TOO_LARGE', message: 'PDF size exceeds 8MB limit' });
-                     overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                     const tooLargeMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
                         "I received the PDF, but it is larger than the 8MB limit. Please upload a smaller file." : 
                         "我已收到 PDF，但文件超过了 8MB 的大小限制。请上传更小的文件。";
-                     formattedUserContent = 'PDF_TOO_LARGE_OVERRIDE';
+                     sendSse({ text: tooLargeMsg, code: 'PDF_TOO_LARGE' });
+                     finishSse();
+                     return;
                  } else {
-                     const llmConfig = getLLMConfigLocal();
-                     console.log('Attempting provider PDF analysis...');
-                     const providerResult = await tryProviderPdfAnalysisWithOpenAICompatibleGateway({
-                         uploadedFile,
-                         pdfBuffer: arrayBuffer,
-                         prompt,
-                         systemPrompt: systemInstruction || projectSystemPrompt,
-                         llmConfig
-                     });
+                     let providerSuccess = false;
+                     let providerReply = '';
                      
-                     if (providerResult.success && providerResult.responseText) {
-                         console.log('Provider PDF analysis succeeded.');
-                         overrideAiReplyMsg = providerResult.responseText;
-                         formattedUserContent = 'PROVIDER_PDF_SUCCESS';
-                     } else {
-                         console.log('Provider PDF analysis failed. Falling back to pdf-parse...');
-                         const pdfParseModule = await import('pdf-parse');
-                         const pdfParse = (pdfParseModule as any).default || (pdfParseModule as any).pdfParse || pdfParseModule;
+                     if (process.env.ENABLE_PROVIDER_PDF_DIRECT === 'true') {
+                         const llmConfig = getLLMConfigLocal();
+                         console.log('Attempting provider PDF analysis...');
+                         const providerResult = await tryProviderPdfAnalysisWithOpenAICompatibleGateway({
+                             uploadedFile,
+                             pdfBuffer: arrayBuffer,
+                             prompt,
+                             systemPrompt: systemInstruction || projectSystemPrompt,
+                             llmConfig
+                         });
                          
-                         if (typeof pdfParse !== 'function') {
-                           throw new Error('pdf-parse did not export a callable parser');
-                         }
-                         
-                         const data = await pdfParse(Buffer.from(arrayBuffer));
-                         const parsedText = data.text || '';
-                         
-                         if (!parsedText.trim()) {
-                             console.log('pdf-parse returned empty text (possibly scanned PDF).');
-                             overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
-                                "I received the PDF, but it may be a scanned or image-based PDF and no text could be extracted. Please upload an image or paste the key text for compliance analysis." :
-                                "我已收到 PDF，但该文件可能是扫描件或图片型 PDF，当前无法提取文字。请上传图片格式，或复制关键文字到对话框中，我可以继续进行商标侵权和跨境合规分析。";
-                             formattedUserContent = 'PDF_PARSE_EMPTY_OVERRIDE';
+                         if (providerResult.success && providerResult.responseText) {
+                             console.log('Provider PDF analysis succeeded.');
+                             providerSuccess = true;
+                             providerReply = providerResult.responseText;
                          } else {
-                             const clippedText = parsedText.slice(0, 12000);
-                             const truncatedMsg = parsedText.length > 12000 ? "\n\n(The file content was truncated for token control.)" : "";
-                             formattedUserContent = `${prompt || 'Please analyze the uploaded PDF file.'}\n\nUploaded file:\n- File name: ${uploadedFile.originalName}\n- MIME type: ${uploadedFile.mimeType}\n\nFile content:\n${clippedText}${truncatedMsg}`;
+                             console.log('Provider PDF analysis failed. Falling back to pdf-parse...');
                          }
+                     }
+                     
+                     if (providerSuccess) {
+                         if (dbAvailable && prisma && currentSessionId) {
+                             try {
+                                 await prisma.aiChatMessage.create({
+                                     data: { sessionId: currentSessionId, role: 'model', content: providerReply }
+                                 });
+                                 await prisma.aiChatSession.update({
+                                     where: { id: currentSessionId },
+                                     data: { updatedAt: new Date() }
+                                 });
+                                 await prisma.usageRecord.create({
+                                     data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
+                                 });
+                             } catch (err) {
+                                 console.error('Failed to log provider PDF bot reply', err);
+                             }
+                         }
+                         sendSse({ text: providerReply, code: 'PROVIDER_PDF_SUCCESS' });
+                         finishSse();
+                         return;
+                     }
+                     
+                     const pdfParseModule = await import('pdf-parse');
+                     const pdfParse = (pdfParseModule as any).default || (pdfParseModule as any).pdfParse || pdfParseModule;
+                     
+                     if (typeof pdfParse !== 'function') {
+                       throw new Error('pdf-parse did not export a callable parser');
+                     }
+                     
+                     const data = await pdfParse(Buffer.from(arrayBuffer));
+                     const parsedText = data.text || '';
+                     
+                     if (!parsedText.trim()) {
+                         console.log('pdf-parse returned empty text (possibly scanned PDF).');
+                         const emptyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                            "I received the PDF, but it may be a scanned or image-based PDF and no text could be extracted. Please upload a JPG/PNG image or paste the key text for compliance analysis." :
+                            "我已收到 PDF，但该文件可能是扫描件或图片型 PDF，当前无法提取文字。请上传 JPG/PNG 图片，或复制关键文字到对话框中，我可以继续进行商标侵权和跨境合规分析。";
+                         sendSse({ text: emptyMsg, code: 'PDF_PARSE_EMPTY' });
+                         finishSse();
+                         return;
+                     } else {
+                         const clippedText = parsedText.slice(0, 12000);
+                         const truncatedMsg = parsedText.length > 12000 ? "\n\n(The file content was truncated for token control.)" : "";
+                         formattedUserContent = `${prompt || 'Please analyze the uploaded PDF file.'}\n\nUploaded PDF:\n- File name: ${uploadedFile.originalName}\n- MIME type: application/pdf\n- Extracted text length: ${parsedText.length}\n\nPDF extracted text:\n${clippedText}${truncatedMsg}`;
+                         isPdfTextExtracted = true;
                      }
                  }
              }
          } catch (err) {
              console.error("Failed to process pdf:", err);
-             overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+             const failMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
                 "I received the PDF, but the document could not be parsed in the current environment. Please upload an image, TXT/CSV file, or paste the key text for compliance analysis." : 
                 "我已收到 PDF，但当前运行环境无法解析该文件。请上传图片、TXT/CSV 文件，或复制关键文字到对话框中，我可以继续进行合规分析。";
-             formattedUserContent = 'PDF_PARSE_FAILED_WITH_GUIDANCE';
+             sendSse({ text: failMsg, code: 'PDF_PARSE_FAILED_WITH_GUIDANCE' });
+             finishSse();
+             return;
          }
       }
     }
@@ -714,7 +749,6 @@ ECI 分析结果：
         }
     }
     
-    let currentSessionId = sessionId;
     if (dbAvailable && prisma) {
         const dbSavePromise = (async () => {
             let tempSessionId = currentSessionId;
@@ -782,39 +816,6 @@ ECI 分析结果：
              }
          }
          sendSse({ text: unsupportedMsg, code: 'UNSUPPORTED_FILE_ANALYSIS_TYPE' });
-         finishSse();
-         return;
-    }
-
-    if (overrideAiReplyMsg) {
-         if (dbAvailable && prisma && currentSessionId) {
-             try {
-                 await prisma.aiChatMessage.create({
-                     data: { sessionId: currentSessionId, role: 'model', content: overrideAiReplyMsg }
-                 });
-                 
-                 await prisma.aiChatSession.update({
-                     where: { id: currentSessionId },
-                     data: { updatedAt: new Date() }
-                 });
-                 
-                 // If it's a real AI reply (i.e. successful provider parse), record usage
-                 if (formattedUserContent === 'PROVIDER_PDF_SUCCESS') {
-                     await prisma.usageRecord.create({
-                         data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
-                     });
-                 }
-             } catch (err) {
-                 console.error('Failed to log override bot reply', err);
-             }
-         }
-         let replyCode = 'PDF_PARSED_OR_FAILED';
-         if (formattedUserContent === 'PDF_TOO_LARGE_OVERRIDE') replyCode = 'PDF_TOO_LARGE';
-         if (formattedUserContent === 'PDF_PARSE_EMPTY_OVERRIDE') replyCode = 'PDF_PARSE_EMPTY';
-         if (formattedUserContent === 'PDF_PARSE_FAILED_WITH_GUIDANCE') replyCode = 'PDF_PARSE_FAILED_WITH_GUIDANCE';
-         if (formattedUserContent === 'PROVIDER_PDF_SUCCESS') replyCode = 'PROVIDER_PDF_SUCCESS';
-         
-         sendSse({ text: overrideAiReplyMsg, code: replyCode });
          finishSse();
          return;
     }
@@ -1132,6 +1133,21 @@ URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevan
                   }
               }
               sendSse({ text: msg, code: 'VISION_MODEL_UNSUPPORTED' });
+          } else if (isPdfTextExtracted) {
+              const msg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                  'I received the PDF text successfully, but the AI model failed to generate a response. Please try again later or switch models.' :
+                  '我已成功读取 PDF 文本，但 AI 模型生成回答失败。请稍后重试或切换模型。';
+              
+              if (dbAvailable && prisma && currentSessionId) {
+                  try {
+                      await prisma.aiChatMessage.create({
+                          data: { sessionId: currentSessionId, role: 'model', content: msg }
+                      });
+                  } catch (e) {
+                      // ignore
+                  }
+              }
+              sendSse({ text: msg, code: 'LLM_FAILED_AFTER_PDF_TEXT_EXTRACTED' });
           } else {
               sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
           }

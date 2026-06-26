@@ -128,7 +128,17 @@ export const streamBackendChat = async (
                                 fullText += parsed.text;
                                 onChunk(parsed.text);
                             } else if (parsed.error) {
-                                if (parsed.code === 'OUT_OF_SCOPE') {
+                                const nonErrorCodes = [
+                                    'OUT_OF_SCOPE',
+                                    'PDF_PARSE_EMPTY',
+                                    'PDF_PARSE_FAILED_WITH_GUIDANCE',
+                                    'PDF_TOO_LARGE',
+                                    'PROVIDER_PDF_UNSUPPORTED',
+                                    'LLM_FAILED_AFTER_PDF_TEXT_EXTRACTED',
+                                    'UNSUPPORTED_FILE_ANALYSIS_TYPE',
+                                    'VISION_MODEL_UNSUPPORTED'
+                                ];
+                                if (nonErrorCodes.includes(parsed.code)) {
                                     fullText += parsed.error;
                                     onChunk(parsed.error);
                                 } else {
