@@ -11,6 +11,8 @@ import { Register } from './components/Auth/Register';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { AdminPanel } from './components/Admin/AdminPanel';
 
+import { IngredientCheckApp } from './components/IngredientCheckApp';
+
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [language, setLanguage] = useState<Language>('zh');
@@ -48,6 +50,8 @@ function AppContent() {
         return <Dashboard onNavigate={setCurrentPage} language={language} />;
       case 'admin':
         return <AdminPanel onNavigate={setCurrentPage} language={language} />;
+      case 'ingredient-check':
+        return <IngredientCheckApp onNavigate={setCurrentPage} language={language} />;
       case 'ecommerce':
       case 'news':
       case 'governance':

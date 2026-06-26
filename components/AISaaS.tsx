@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowUpRight } from 'lucide-react';
+import { Sparkles, ArrowUpRight, Beaker } from 'lucide-react';
 import { FullLogo } from './FullLogo';
 import { Language } from '../types';
 import { translations } from '../translations';
@@ -108,11 +108,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
               break;
           case 'eci':
               if (!checkPermission('pro')) return;
-              setActiveRadar({
-                  title: t.card2Title,
-                  instruction: "You are the ECI Talent Analyst AI. You specialize in HR analytics and predicting employee performance based on multi-dimensional traits. Explain how the 'Striver Index' works and how it helps companies identify top talent.",
-                  greeting: language === 'zh' ? "我是 ECI 人才分析助手。我可以帮助您解读员工奋斗者指数，并通过多维特征识别优秀人才。您想了解什么？" : "I am the ECI Talent Analyst. I can help you interpret the Employee Striver Index and identify top talent through multi-dimensional characteristics."
-              });
+              onNavigate('ingredient-check');
               break;
           case 'logistics':
               if (!checkPermission('startup')) return;
@@ -193,6 +189,7 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
                     desc={t.card2Desc} 
                     onClick={() => handleTopCardClick('eci')}
                     showArrow
+                    icon={Beaker}
                 />
                 <Card 
                     color="text-indigo-300" 
@@ -296,13 +293,13 @@ const AISaaS: React.FC<AISaaSProps> = ({ language, onNavigate }) => {
   );
 };
 
-const Card = ({color, title, desc, onClick, showArrow}: {color: string, title: string, desc: string, onClick?: () => void, showArrow?: boolean}) => (
+const Card = ({color, title, desc, onClick, showArrow, icon: IconComponent = Sparkles}: {color: string, title: string, desc: string, onClick?: () => void, showArrow?: boolean, icon?: any}) => (
     <div 
         onClick={onClick}
         className={`bg-white text-gray-800 p-8 rounded-xl shadow-lg hover:-translate-y-2 transition-transform duration-300 min-h-[200px] flex flex-col justify-start items-start group ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
         <div className={`mb-6 ${color} transform group-hover:scale-110 transition-transform duration-300`}>
-            <Sparkles size={28} fill="currentColor" className="opacity-80" />
+            <IconComponent size={28} fill="currentColor" className="opacity-80" />
         </div>
         <h4 className="font-bold text-lg mb-3 text-slate-900">{title}</h4>
         <p className="text-sm text-gray-500 leading-relaxed font-light">{desc}</p>
