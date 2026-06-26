@@ -365,7 +365,7 @@ const AILabModal: React.FC<AILabModalProps> = ({
         else if (errCode === 'FILE_TOO_LARGE') displayError = language === 'zh' ? '文件过大，请上传更小的文件。' : 'File is too large. Please upload a smaller file.';
         else if (errCode === 'FILE_DATA_EMPTY') displayError = language === 'zh' ? '文件数据为空，请重新选择文件。' : 'File data is empty. Please select the file again.';
         else if (errCode === 'ATTACHMENT_NOT_FOUND') displayError = language === 'zh' ? '上传文件记录不存在，请重新上传。' : 'The uploaded file record was not found. Please upload it again.';
-        else if (errCode === 'VISION_MODEL_UNSUPPORTED') displayError = language === 'zh' ? '当前 AI 模型暂不支持图片视觉分析，请切换多模态模型或上传文本。' : 'The current AI model does not support image vision analysis. Please switch to a multimodal model or upload text.';
+        else if (errCode === 'AI_CHAT_INTERNAL_ERROR') displayError = language === 'zh' ? 'AI 请求失败，请稍后重试。' : 'AI chat request failed. Please try again.';
         
         setMessages((prev) =>
           prev.map((msg) =>

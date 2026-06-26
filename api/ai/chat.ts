@@ -544,8 +544,8 @@ ECI 分析结果：
     let dbUserMessageContent = prompt || '';
 
     if (attachmentFileId) {
-      if (!dbAvailable) {
-        sendSse({ error: "File analysis requires database connection. Please try again later.", code: "DATABASE_REQUIRED_FOR_FILE" });
+      if (!prisma) {
+        sendSse({ error: 'File analysis requires database connection.', code: 'DATABASE_REQUIRED_FOR_FILE' });
         finishSse();
         return;
       }
@@ -556,11 +556,19 @@ ECI 分析结果：
       }
 
       try {
-        uploadedFile = await prisma.uploadedFile.findUnique({
-          where: { id: attachmentFileId }
-        });
-      } catch (err) {
+        uploadedFile = await Promise.race([
+          prisma.uploadedFile.findUnique({ where: { id: attachmentFileId } }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('FILE_DB_TIMEOUT')), 12000))
+        ]) as any;
+      } catch (err: any) {
         console.error("Failed to query attachment:", err);
+        if (err.message === 'FILE_DB_TIMEOUT') {
+          sendSse({ error: 'File record lookup timed out. Please retry.', code: 'FILE_DATABASE_LOOKUP_TIMEOUT' });
+        } else {
+          sendSse({ error: 'Failed to access database for file lookup.', code: 'DATABASE_CONNECTION_FAILED' });
+        }
+        finishSse();
+        return;
       }
 
       if (!uploadedFile || uploadedFile.userId !== userId) {
@@ -631,7 +639,8 @@ ECI 分析结果：
                          formattedUserContent = 'PROVIDER_PDF_SUCCESS';
                      } else {
                          console.log('Provider PDF analysis failed. Falling back to pdf-parse...');
-                         const pdfParse = (await import('pdf-parse')).default;
+                         const pdfParseModule = await import('pdf-parse');
+                         const pdfParse = (pdfParseModule as any).default || (pdfParseModule as any).pdfParse || pdfParseModule;
                          const data = await pdfParse(Buffer.from(arrayBuffer));
                          const parsedText = data.text || '';
                          
@@ -651,6 +660,10 @@ ECI 分析结果：
              }
          } catch (err) {
              console.error("Failed to process pdf:", err);
+             overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                "I received the PDF, but the document could not be parsed in the current environment. Please upload an image, TXT/CSV file, or paste the key text for compliance analysis." : 
+                "我已收到 PDF，但当前运行环境无法解析该文件。请上传图片、TXT/CSV 文件，或复制关键文字到对话框中，我可以继续进行合规分析。";
+             formattedUserContent = 'PDF_PARSE_FAILED_WITH_GUIDANCE';
          }
       }
     }
@@ -790,7 +803,13 @@ ECI 分析结果：
                  console.error('Failed to log override bot reply', err);
              }
          }
-         sendSse({ text: overrideAiReplyMsg, code: 'PDF_PARSED_OR_FAILED' });
+         let replyCode = 'PDF_PARSED_OR_FAILED';
+         if (formattedUserContent === 'PDF_TOO_LARGE_OVERRIDE') replyCode = 'PDF_TOO_LARGE';
+         if (formattedUserContent === 'PDF_PARSE_EMPTY_OVERRIDE') replyCode = 'PDF_PARSE_EMPTY';
+         if (formattedUserContent === 'PDF_PARSE_FAILED_WITH_GUIDANCE') replyCode = 'PDF_PARSE_FAILED_WITH_GUIDANCE';
+         if (formattedUserContent === 'PROVIDER_PDF_SUCCESS') replyCode = 'PROVIDER_PDF_SUCCESS';
+         
+         sendSse({ text: overrideAiReplyMsg, code: replyCode });
          finishSse();
          return;
     }
@@ -1096,7 +1115,18 @@ URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevan
           console.error("LLM Provider Error (all fallbacks exhausted):", lastError);
           const errStr = String(lastError?.message || '').toLowerCase();
           if (errStr.includes('image') || errStr.includes('vision') || errStr.includes('multimodal')) {
-              sendSse({ error: "The current AI model does not support image vision analysis.", code: "VISION_MODEL_UNSUPPORTED" });
+              const msg = "The current AI model does not support image vision analysis. Please switch to a multimodal model or upload text.";
+              
+              if (dbAvailable && prisma && currentSessionId) {
+                  try {
+                      await prisma.aiChatMessage.create({
+                          data: { sessionId: currentSessionId, role: 'model', content: msg }
+                      });
+                  } catch (e) {
+                      // ignore
+                  }
+              }
+              sendSse({ text: msg, code: 'VISION_MODEL_UNSUPPORTED' });
           } else {
               sendSse({ error: "Failed to generate AI response", code: "AI_PROVIDER_ERROR" });
           }
@@ -1132,7 +1162,10 @@ URL: ${a.url}`).join('\n\n') + `\n\nUse this local database context when relevan
   } catch (error: any) {
     if (typeof keepAliveInterval !== 'undefined') clearInterval(keepAliveInterval);
     console.error("Unexpected Internal Error:", error);
-    sendSse({ error: "Internal Error", code: "INTERNAL_ERROR" });
+    sendSse({ 
+        error: "AI chat request failed. Please retry.", 
+        code: "AI_CHAT_INTERNAL_ERROR" 
+    });
     finishSse();
   }
 }
