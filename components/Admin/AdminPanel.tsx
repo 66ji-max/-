@@ -5,6 +5,8 @@ import { Mail, Edit, Trash2, Key, Star, ShieldOff, CheckCircle, XCircle, Downloa
 import { authFetch } from '../../utils/apiClient';
 import { SupportTab } from './SupportTab';
 import { ComplianceTab } from './ComplianceTab';
+import { SystemDiagnosticsTab } from './SystemDiagnosticsTab';
+import { Activity } from 'lucide-react';
 
 export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: string }> = ({ onNavigate, language }) => {
   const { user, token } = useAuth();
@@ -12,7 +14,7 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
   const tupg = translations[language as keyof typeof translations].upgrade;
   const tsup = translations[language as keyof typeof translations].support;
   
-  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'support' | 'compliance'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'orders' | 'support' | 'compliance' | 'diagnostics'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -464,14 +466,21 @@ export const AdminPanel: React.FC<{ onNavigate: (page: any) => void; language: s
               <BookOpen size={16} />
               {language === 'zh' ? '合规资料库' : 'Compliance Library'}
           </button>
+          <button 
+              onClick={() => setActiveTab('diagnostics')}
+              className={`px-4 py-2 font-bold rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'diagnostics' ? 'bg-sfc-orange text-white' : 'text-gray-400 hover:text-white bg-white/5'}`}
+          >
+              <Activity size={16} />
+              {language === 'zh' ? '系统诊断' : 'System Diagnostics'}
+          </button>
       </div>
 
       {error && <div className="p-4 mb-6 bg-red-500/20 border border-red-500 text-red-100 rounded-lg">{error}</div>}
 
-      {loading && activeTab !== 'support' && activeTab !== 'compliance' ? (
+      {loading && activeTab !== 'support' && activeTab !== 'compliance' && activeTab !== 'diagnostics' ? (
         <div className="py-20 text-center text-white">Loading...</div>
       ) : (
-        activeTab === 'users' ? renderUsersTab() : activeTab === 'orders' ? renderOrdersTab() : activeTab === 'compliance' ? <ComplianceTab language={language} /> : <SupportTab language={language} userRole={user?.role || 'user'} />
+        activeTab === 'users' ? renderUsersTab() : activeTab === 'orders' ? renderOrdersTab() : activeTab === 'compliance' ? <ComplianceTab language={language} /> : activeTab === 'diagnostics' ? <SystemDiagnosticsTab language={language} /> : <SupportTab language={language} userRole={user?.role || 'user'} />
       )}
     </div>
   );

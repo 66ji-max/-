@@ -358,6 +358,12 @@ const AILabModal: React.FC<AILabModalProps> = ({
         else if (errCode === 'STARTUP_DAILY_LIMIT_REACHED') displayError = tai?.startupDailyLimitReached || displayError;
         else if (errCode === 'ATTACHMENT_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || displayError;
         else if (errCode === 'ECI_REQUIRES_PRO') displayError = tai?.eciRequiresPro || displayError;
+        else if (errCode === 'BLOB_TOKEN_MISSING') displayError = language === 'zh' ? '文件存储未配置，请检查 Vercel Blob Token。' : 'File storage is not configured. Please check Vercel Blob Token.';
+        else if (errCode === 'UPLOADED_FILE_TABLE_MISSING') displayError = language === 'zh' ? '文件表未创建，请先同步数据库。' : 'Uploaded file table is missing. Please sync the database.';
+        else if (errCode === 'DATABASE_CONNECTION_FAILED') displayError = language === 'zh' ? '数据库连接失败，请稍后重试。' : 'Database connection failed. Please try again later.';
+        else if (errCode === 'FILE_UPLOAD_REQUIRES_STARTUP') displayError = tai?.fileUploadRequiresStartup || (language === 'zh' ? '文件上传需要 Startup 或 Pro 套餐。' : 'File upload requires Startup or Pro plan.');
+        else if (errCode === 'FILE_TOO_LARGE') displayError = language === 'zh' ? '文件过大，请上传更小的文件。' : 'File is too large. Please upload a smaller file.';
+        else if (errCode === 'FILE_DATA_EMPTY') displayError = language === 'zh' ? '文件数据为空，请重新选择文件。' : 'File data is empty. Please select the file again.';
         
         setMessages((prev) =>
           prev.map((msg) =>

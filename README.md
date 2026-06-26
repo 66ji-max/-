@@ -75,13 +75,45 @@ If OpenAI-compatible keys are not set, it will fallback to official Gemini SDK:
 Check your configuration status by visiting `/api/auth?action=health`.
 
 ### Other required variables:
-- `DATABASE_URL` / `DIRECT_URL`
+- `POSTGRES_PRISMA_URL` (for Neon database)
+- `POSTGRES_URL_NON_POOLING`
 - `JWT_SECRET`
 - `BLOB_READ_WRITE_TOKEN`
 
+## Database Diagnostics
+
+If you encounter missing table errors during file upload or admin usage, you can check which tables exist in your Neon SQL Editor:
+
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_name IN (
+  'User',
+  'Membership',
+  'UploadedFile',
+  'UsageRecord',
+  'UpgradeOrder',
+  'AiChatSession',
+  'AiChatMessage',
+  'ComplianceSource',
+  'ComplianceArticle',
+  'ComplianceCrawlRun'
+)
+ORDER BY table_name;
+```
+
+如果缺表，执行：
+```bash
+npx prisma db push
+```
+或在 Neon SQL Editor 手动创建对应表。
+
 ## Compliance Database & Crawler
 
-Run the crawler script manually or via GitHub Actions (e.g. `npm run crawl:compliance`). 
+Run the crawler script manually via GitHub Actions (`Actions` → `Crawl Compliance Sources` → `Run workflow`) or locally via `npm run crawl:compliance`.
+The schedule cron job is currently commented out in `.github/workflows/crawl-compliance.yml` pending further stability tests. Once confirmed, you can uncomment it to enable automated daily runs.
+
 **Note**: Please manually execute `npx prisma db push` on your Neon database to apply the new schema changes for `ComplianceSource` and `ComplianceArticle`.
 
 **Crawler Guidelines**:
@@ -89,7 +121,7 @@ Run the crawler script manually or via GitHub Actions (e.g. `npm run crawl:compl
 - 遵守 robots.txt 和网站条款；
 - 不抓取需要登录、付费、禁止转载的内容；
 - 数据库保存标题、摘要、URL、发布时间、来源，不大规模复制版权全文；
-- 对重要政策建议人工审核后再发布；
+- 对重要政策建议人工审核后再发布（爬取数据默认为 `draft` 状态，请在 AdminPanel 手动变更为 `published` 后 AI 才会使用）；
 - AI 输出仅作业务参考，不构成正式法律意见。
 
 ## License
