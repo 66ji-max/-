@@ -52,6 +52,74 @@ async function loadPrisma() {
   }
 }
 
+async function tryProviderPdfAnalysisWithOpenAICompatibleGateway({
+  uploadedFile,
+  pdfBuffer,
+  prompt,
+  systemPrompt,
+  llmConfig
+}: any): Promise<{ success: boolean; responseText?: string }> {
+  try {
+    const base64Pdf = Buffer.from(pdfBuffer).toString('base64');
+    const messages = [
+      { role: 'system', content: systemPrompt || 'You are an AI assistant.' },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: prompt || 'Please analyze this PDF file.'
+          },
+          {
+            type: 'file',
+            file: {
+              filename: uploadedFile.originalName || 'document.pdf',
+              file_data: `data:application/pdf;base64,${base64Pdf}`
+            }
+          }
+        ]
+      }
+    ];
+
+    const modelsToTry = [llmConfig.model, ...llmConfig.fallbackModels].filter(Boolean);
+    
+    for (const currentModel of modelsToTry) {
+        const reqBody = {
+          model: currentModel,
+          messages,
+          stream: false,
+          temperature: 0.3
+        };
+        
+        try {
+            const res = await fetch(`${llmConfig.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${llmConfig.apiKey}`
+                },
+                body: JSON.stringify(reqBody)
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.choices && data.choices[0]?.message?.content) {
+                    return { success: true, responseText: data.choices[0].message.content };
+                }
+            } else {
+                const text = await res.text();
+                console.warn(`Provider PDF analysis failed for model ${currentModel}: ${res.status} ${text}`);
+            }
+        } catch (e: any) {
+            console.warn(`Provider PDF analysis exception for model ${currentModel}:`, e.message);
+        }
+    }
+  } catch (err) {
+      console.error("tryProviderPdfAnalysisWithOpenAICompatibleGateway error:", err);
+  }
+  return { success: false };
+}
+
 const PLAN_LIMITS = {
   free: {
     dailyAiLimit: 10,
@@ -505,6 +573,8 @@ ECI 分析结果：
 
       const mimeType = uploadedFile.mimeType.toLowerCase();
       
+      let overrideAiReplyMsg = '';
+
       if (['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(mimeType)) {
         formattedUserContent = [
           {
@@ -530,8 +600,58 @@ ECI 分析结果：
         } catch (err) {
           console.error("Failed to fetch text blob:", err);
         }
-      } else if (['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(mimeType)) {
+      } else if (['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'].includes(mimeType)) {
          formattedUserContent = 'UNSUPPORTED_DOCUMENT';
+      } else if (mimeType === 'application/pdf') {
+         console.log(`Processing PDF file: ${uploadedFile.id}, size: ${uploadedFile.size}`);
+         try {
+             const fileRes = await fetch(uploadedFile.blobUrl);
+             if (fileRes.ok) {
+                 const arrayBuffer = await fileRes.arrayBuffer();
+                 if (arrayBuffer.byteLength > 8 * 1024 * 1024) {
+                     sendSse({ type: 'warning', code: 'PDF_TOO_LARGE', message: 'PDF size exceeds 8MB limit' });
+                     overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                        "I received the PDF, but it is larger than the 8MB limit. Please upload a smaller file." : 
+                        "我已收到 PDF，但文件超过了 8MB 的大小限制。请上传更小的文件。";
+                     formattedUserContent = 'PDF_TOO_LARGE_OVERRIDE';
+                 } else {
+                     const llmConfig = getLLMConfigLocal();
+                     console.log('Attempting provider PDF analysis...');
+                     const providerResult = await tryProviderPdfAnalysisWithOpenAICompatibleGateway({
+                         uploadedFile,
+                         pdfBuffer: arrayBuffer,
+                         prompt,
+                         systemPrompt: systemInstruction || projectSystemPrompt,
+                         llmConfig
+                     });
+                     
+                     if (providerResult.success && providerResult.responseText) {
+                         console.log('Provider PDF analysis succeeded.');
+                         overrideAiReplyMsg = providerResult.responseText;
+                         formattedUserContent = 'PROVIDER_PDF_SUCCESS';
+                     } else {
+                         console.log('Provider PDF analysis failed. Falling back to pdf-parse...');
+                         const pdfParse = (await import('pdf-parse')).default;
+                         const data = await pdfParse(Buffer.from(arrayBuffer));
+                         const parsedText = data.text || '';
+                         
+                         if (!parsedText.trim()) {
+                             console.log('pdf-parse returned empty text (possibly scanned PDF).');
+                             overrideAiReplyMsg = !/[\u4e00-\u9fa5]/.test(prompt || '') ? 
+                                "I received the PDF, but it may be a scanned or image-based PDF and no text could be extracted. Please upload an image or paste the key text for compliance analysis." :
+                                "我已收到 PDF，但该文件可能是扫描件或图片型 PDF，当前无法提取文字。请上传图片格式，或复制关键文字到对话框中，我可以继续进行商标侵权和跨境合规分析。";
+                             formattedUserContent = 'PDF_PARSE_EMPTY_OVERRIDE';
+                         } else {
+                             const clippedText = parsedText.slice(0, 12000);
+                             const truncatedMsg = parsedText.length > 12000 ? "\n\n(The file content was truncated for token control.)" : "";
+                             formattedUserContent = `${prompt || 'Please analyze the uploaded PDF file.'}\n\nUploaded file:\n- File name: ${uploadedFile.originalName}\n- MIME type: ${uploadedFile.mimeType}\n\nFile content:\n${clippedText}${truncatedMsg}`;
+                         }
+                     }
+                 }
+             }
+         } catch (err) {
+             console.error("Failed to process pdf:", err);
+         }
       }
     }
 
@@ -644,6 +764,33 @@ ECI 分析结果：
              }
          }
          sendSse({ text: unsupportedMsg, code: 'UNSUPPORTED_FILE_ANALYSIS_TYPE' });
+         finishSse();
+         return;
+    }
+
+    if (overrideAiReplyMsg) {
+         if (dbAvailable && prisma && currentSessionId) {
+             try {
+                 await prisma.aiChatMessage.create({
+                     data: { sessionId: currentSessionId, role: 'model', content: overrideAiReplyMsg }
+                 });
+                 
+                 await prisma.aiChatSession.update({
+                     where: { id: currentSessionId },
+                     data: { updatedAt: new Date() }
+                 });
+                 
+                 // If it's a real AI reply (i.e. successful provider parse), record usage
+                 if (formattedUserContent === 'PROVIDER_PDF_SUCCESS') {
+                     await prisma.usageRecord.create({
+                         data: { userId, featureType: "ai_chat", fileId: attachmentFileId }
+                     });
+                 }
+             } catch (err) {
+                 console.error('Failed to log override bot reply', err);
+             }
+         }
+         sendSse({ text: overrideAiReplyMsg, code: 'PDF_PARSED_OR_FAILED' });
          finishSse();
          return;
     }
